@@ -83,19 +83,27 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       const dx = e.clientX - dragStart.x;
       const dy = e.clientY - dragStart.y;
 
-      const newX = snapToGrid(selectedRoom.x + dx);
-      const newY = snapToGrid(selectedRoom.y + dy);
+      const newX = selectedRoom.x + dx;
+      const newY = selectedRoom.y + dy;
 
       onRoomMove(selectedRoomId, newX, newY);
       setDragStart({ x: e.clientX, y: e.clientY });
     },
-    [isDragging, dragStart, selectedRoomId, onRoomMove, snapToGrid, rooms],
+    [isDragging, dragStart, selectedRoomId, onRoomMove, rooms],
   );
 
   const handleMouseUp = useCallback(() => {
+    if (selectedRoomId) {
+      const selectedRoom = rooms.find(room => room.id === selectedRoomId);
+      if (selectedRoom) {
+        const snappedX = snapToGrid(selectedRoom.x);
+        const snappedY = snapToGrid(selectedRoom.y);
+        onRoomMove(selectedRoomId, snappedX, snappedY);
+      }
+    }
     setIsDragging(false);
     setDragStart(null);
-  }, []);
+  }, [selectedRoomId, rooms, snapToGrid, onRoomMove]);
 
   useEffect(() => {
     if (isDragging) {

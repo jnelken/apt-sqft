@@ -9,17 +9,19 @@ import { RoomForm } from './components/RoomForm';
 import { RoomDetails } from './components/RoomDetails';
 import { AppState, Room } from './types';
 
+const INIT_GRID_SIZE = 12 * 6;
+
 const initialFloorPlan = {
   rooms: [],
   furniture: [],
-  gridSize: 1,
+  gridSize: INIT_GRID_SIZE,
 };
 
 const initialAppState: AppState = {
   floorPlan: initialFloorPlan,
   selectedRoomId: null,
   selectedTool: 'select',
-  gridSize: 1,
+  gridSize: INIT_GRID_SIZE,
   zoom: 1,
   theme: 'light',
 };

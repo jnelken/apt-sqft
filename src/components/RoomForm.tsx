@@ -22,8 +22,10 @@ export const RoomForm: React.FC<RoomFormProps> = ({
 
   const [formData, setFormData] = useState({
     name: initialValues?.name || 'Room ' + letter,
-    height: initialValues?.height || 120,
-    width: initialValues?.width || 240,
+    heightFeet: Math.floor((initialValues?.height || 120) / 12),
+    heightInches: (initialValues?.height || 120) % 12,
+    widthFeet: Math.floor((initialValues?.width || 240) / 12),
+    widthInches: (initialValues?.width || 240) % 12,
     isLivable: initialValues?.isLivable ?? true,
     isRelative: initialValues?.isRelative ?? false,
     relativeTo: initialValues?.relativeTo || '',
@@ -34,9 +36,13 @@ export const RoomForm: React.FC<RoomFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const totalHeight = formData.heightFeet * 12 + formData.heightInches;
+    const totalWidth = formData.widthFeet * 12 + formData.widthInches;
     onSubmit({
       ...formData,
-      sqFootage: formData.height * formData.width,
+      height: totalHeight,
+      width: totalWidth,
+      sqFootage: totalHeight * totalWidth,
     });
   };
 
@@ -55,29 +61,69 @@ export const RoomForm: React.FC<RoomFormProps> = ({
         required
       />
 
-      <TextField
-        fullWidth
-        label="Height (inches)"
-        type="number"
-        value={formData.height}
-        onChange={e =>
-          setFormData(prev => ({ ...prev, height: Number(e.target.value) }))
-        }
-        margin="normal"
-        required
-      />
+      <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
+        Height
+      </Typography>
+      <Box sx={{ display: 'flex', gap: 2 }}>
+        <TextField
+          fullWidth
+          label="Feet"
+          type="number"
+          value={formData.heightFeet}
+          onChange={e =>
+            setFormData(prev => ({
+              ...prev,
+              heightFeet: Math.max(0, Number(e.target.value)),
+            }))
+          }
+          required
+        />
+        <TextField
+          fullWidth
+          label="Inches"
+          type="number"
+          value={formData.heightInches}
+          onChange={e =>
+            setFormData(prev => ({
+              ...prev,
+              heightInches: Math.max(0, Math.min(11, Number(e.target.value))),
+            }))
+          }
+          required
+        />
+      </Box>
 
-      <TextField
-        fullWidth
-        label="Width (inches)"
-        type="number"
-        value={formData.width}
-        onChange={e =>
-          setFormData(prev => ({ ...prev, width: Number(e.target.value) }))
-        }
-        margin="normal"
-        required
-      />
+      <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
+        Width
+      </Typography>
+      <Box sx={{ display: 'flex', gap: 2 }}>
+        <TextField
+          fullWidth
+          label="Feet"
+          type="number"
+          value={formData.widthFeet}
+          onChange={e =>
+            setFormData(prev => ({
+              ...prev,
+              widthFeet: Math.max(0, Number(e.target.value)),
+            }))
+          }
+          required
+        />
+        <TextField
+          fullWidth
+          label="Inches"
+          type="number"
+          value={formData.widthInches}
+          onChange={e =>
+            setFormData(prev => ({
+              ...prev,
+              widthInches: Math.max(0, Math.min(11, Number(e.target.value))),
+            }))
+          }
+          required
+        />
+      </Box>
 
       {initialValues && (
         <Typography
