@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
   Box,
-  TextField,
   Button,
   FormControlLabel,
   Switch,
   Typography,
 } from '@mui/material';
 import { Room } from '../types';
+import { CompactTextField } from './CompactTextField';
 
 interface RoomFormProps {
   onSubmit: (room: Omit<Room, 'id' | 'points'>) => void;
@@ -52,12 +52,10 @@ export const RoomForm: React.FC<RoomFormProps> = ({
         {initialValues ? 'Edit Room' : 'Add New Room'}
       </Typography>
 
-      <TextField
-        fullWidth
+      <CompactTextField
         label="Room Name"
         value={formData.name}
         onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-        margin="normal"
         required
       />
 
@@ -65,8 +63,7 @@ export const RoomForm: React.FC<RoomFormProps> = ({
         Height
       </Typography>
       <Box sx={{ display: 'flex', gap: 2 }}>
-        <TextField
-          fullWidth
+        <CompactTextField
           label="Feet"
           type="number"
           value={formData.heightFeet}
@@ -78,8 +75,7 @@ export const RoomForm: React.FC<RoomFormProps> = ({
           }
           required
         />
-        <TextField
-          fullWidth
+        <CompactTextField
           label="Inches"
           type="number"
           value={formData.heightInches}
@@ -97,8 +93,7 @@ export const RoomForm: React.FC<RoomFormProps> = ({
         Width
       </Typography>
       <Box sx={{ display: 'flex', gap: 2 }}>
-        <TextField
-          fullWidth
+        <CompactTextField
           label="Feet"
           type="number"
           value={formData.widthFeet}
@@ -110,8 +105,7 @@ export const RoomForm: React.FC<RoomFormProps> = ({
           }
           required
         />
-        <TextField
-          fullWidth
+        <CompactTextField
           label="Inches"
           type="number"
           value={formData.widthInches}
@@ -160,19 +154,16 @@ export const RoomForm: React.FC<RoomFormProps> = ({
 
       {formData.isRelative && (
         <>
-          <TextField
-            fullWidth
+          <CompactTextField
             label="Relative To Room"
             value={formData.relativeTo}
             onChange={e =>
               setFormData(prev => ({ ...prev, relativeTo: e.target.value }))
             }
-            margin="normal"
             required
           />
 
-          <TextField
-            fullWidth
+          <CompactTextField
             label="Relative Ratio"
             type="number"
             value={formData.relativeRatio}
@@ -182,7 +173,6 @@ export const RoomForm: React.FC<RoomFormProps> = ({
                 relativeRatio: Number(e.target.value),
               }))
             }
-            margin="normal"
             required
           />
         </>
