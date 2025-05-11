@@ -56,8 +56,8 @@ function App() {
           room.id === roomId
             ? {
                 ...room,
-                x: room.x + x / prev.gridSize,
-                y: room.y + y / prev.gridSize,
+                x,
+                y,
               }
             : room,
         ),
