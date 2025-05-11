@@ -11,6 +11,7 @@ import { RoomForm } from './components/RoomForm';
 import { RoomDetails } from './components/RoomDetails';
 import { GridSettings } from './components/GridSettings';
 import { ImageSettings } from './components/ImageSettings';
+import { ZoomControls } from './components/ZoomControls';
 import { AppState, Room } from './types';
 
 const INIT_GRID_SIZE = 12 * 6;
@@ -146,6 +147,10 @@ function App() {
     }));
   };
 
+  const handleZoomChange = (newZoom: number) => {
+    setAppState(prev => ({ ...prev, zoom: newZoom }));
+  };
+
   const theme = createTheme({
     typography: {
       fontFamily: 'Geist, sans-serif',
@@ -167,6 +172,11 @@ function App() {
               onGridSizeChange={handleGridSizeChange}
             />
             <Box sx={{ flexGrow: 1 }} />
+            <ZoomControls
+              zoom={appState.zoom}
+              onZoomChange={handleZoomChange}
+            />
+            <Box sx={{ width: 16 }} />
             <ImageSettings
               onImageUpload={handleImageUpload}
               imageScale={appState.imageScale}

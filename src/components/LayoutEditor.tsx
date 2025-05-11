@@ -11,6 +11,16 @@ const EditorContainer = styled('div')({
   fontSize: '1px',
 });
 
+const EditorContent = styled('div')<{ zoom: number }>(({ zoom }) => ({
+  position: 'absolute',
+  top: '50%',
+  left: '50%',
+  transform: `translate(-50%, -50%) scale(${zoom})`,
+  transformOrigin: 'center center',
+  width: '100%',
+  height: '100%',
+}));
+
 const Grid = styled('div')<{ gridSize: number }>(({ theme, gridSize }) => ({
   position: 'absolute',
   top: 0,
@@ -26,15 +36,17 @@ const Grid = styled('div')<{ gridSize: number }>(({ theme, gridSize }) => ({
 
 const BackgroundImage = styled('div')<{ scale: number }>(({ scale }) => ({
   position: 'absolute',
-  top: '0%',
-  left: '0%',
-  transform: `scale(${scale})`,
+  top: '50%',
+  left: '50%',
+  transform: `translate(-50%, -50%) scale(${scale})`,
   backgroundSize: 'contain',
   backgroundPosition: 'center',
   backgroundRepeat: 'no-repeat',
   pointerEvents: 'none',
   width: '100%',
   height: '100%',
+  minWidth: '100%',
+  minHeight: '100%',
 }));
 
 const RoomElement = styled('div')<{ isLivable: boolean }>(({ isLivable }) => ({
@@ -138,27 +150,29 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}>
-      {backgroundImage && (
-        <BackgroundImage
-          scale={imageScale}
-          style={{ backgroundImage: `url(${backgroundImage})` }}
-        />
-      )}
-      <Grid gridSize={gridSize} />
-      {rooms.map(room => (
-        <RoomElement
-          key={room.id}
-          isLivable={room.isLivable}
-          style={{
-            left: `${room.x}em`,
-            top: `${room.y}em`,
-            width: `${room.width}em`,
-            height: `${room.height}em`,
-            borderColor: selectedRoomId === room.id ? '#2196f3' : '#000',
-          }}
-          onMouseDown={e => handleMouseDown(e, room.id)}
-        />
-      ))}
+      <EditorContent zoom={zoom}>
+        {backgroundImage && (
+          <BackgroundImage
+            scale={imageScale}
+            style={{ backgroundImage: `url(${backgroundImage})` }}
+          />
+        )}
+        <Grid gridSize={gridSize} />
+        {rooms.map(room => (
+          <RoomElement
+            key={room.id}
+            isLivable={room.isLivable}
+            style={{
+              left: `${room.x}em`,
+              top: `${room.y}em`,
+              width: `${room.width}em`,
+              height: `${room.height}em`,
+              borderColor: selectedRoomId === room.id ? '#2196f3' : '#000',
+            }}
+            onMouseDown={e => handleMouseDown(e, room.id)}
+          />
+        ))}
+      </EditorContent>
     </EditorContainer>
   );
 };
