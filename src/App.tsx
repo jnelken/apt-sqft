@@ -7,6 +7,7 @@ import Tab from '@mui/material/Tab';
 import { LayoutEditor } from './components/LayoutEditor';
 import { RoomForm } from './components/RoomForm';
 import { RoomDetails } from './components/RoomDetails';
+import { GridSettings } from './components/GridSettings';
 import { AppState, Room } from './types';
 
 const INIT_GRID_SIZE = 12 * 6;
@@ -36,6 +37,10 @@ function App() {
     if (newValue === 0) {
       setAppState(prev => ({ ...prev, selectedRoomId: null }));
     }
+  };
+
+  const handleGridSizeChange = (newSize: number) => {
+    setAppState(prev => ({ ...prev, gridSize: newSize }));
   };
 
   const selectedRoom = appState.floorPlan.rooms.find(
@@ -150,6 +155,7 @@ function App() {
           <Tabs value={sidebarTab} onChange={handleTabChange}>
             <Tab label="Add Room" />
             <Tab label="Room Details" />
+            <Tab label="Grid Settings" />
           </Tabs>
           {sidebarTab === 0 && <RoomForm onSubmit={handleAddRoom} />}
           {sidebarTab === 1 && (
@@ -163,6 +169,12 @@ function App() {
                 <RoomDetails room={null} />
               )}
             </>
+          )}
+          {sidebarTab === 2 && (
+            <GridSettings
+              gridSize={appState.gridSize}
+              onGridSizeChange={handleGridSizeChange}
+            />
           )}
         </Box>
       </Box>

@@ -11,7 +11,7 @@ const EditorContainer = styled('div')({
   fontSize: '1px',
 });
 
-const Grid = styled('div')(({ theme }) => ({
+const Grid = styled('div')<{ gridSize: number }>(({ theme, gridSize }) => ({
   position: 'absolute',
   top: 0,
   left: 0,
@@ -21,7 +21,7 @@ const Grid = styled('div')(({ theme }) => ({
     linear-gradient(to right, ${theme.palette.primary.main}20 1px, transparent 1px),
     linear-gradient(to bottom, ${theme.palette.primary.main}20 1px, transparent 1px)
   `,
-  backgroundSize: '1em 1em',
+  backgroundSize: `${gridSize}px ${gridSize}px`,
 }));
 
 const RoomElement = styled('div')<{ isLivable: boolean }>(({ isLivable }) => ({
@@ -121,7 +121,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}>
-      <Grid />
+      <Grid gridSize={gridSize} />
       {rooms.map(room => (
         <RoomElement
           key={room.id}
