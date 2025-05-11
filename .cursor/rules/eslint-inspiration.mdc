@@ -1,0 +1,1637 @@
+---
+description: example eslint file from another repository. Use to write your eslint when deciding which built-in rules to use and which plugins (if available).
+globs:
+alwaysApply: false
+---
+// @ts-check
+
+const extensions = ['.json', '.ts', '.tsx', '.jsx', '.js'];
+
+const { STORYBOOK_EXTENSIONS_GLOB } = require('./.storybook/constants');
+const replayConfig = require('eslint-plugin-datadog/rules/impose-code-structure/replay-config');
+const { restrictClassNames } = require('eslint-plugin-datadog/helpers');
+
+/** @type {[ 'error', ...Array<{ object?: string; property: string; message: string }> ]} */
+const restrictedProperties = [
+    'error',
+    {
+        object: 'arguments',
+        property: 'callee',
+        message: 'arguments.callee is deprecated',
+    },
+    {
+        object: 'global',
+        property: 'isFinite',
+        message: 'Please use Number.isFinite instead',
+    },
+    {
+        object: 'self',
+        property: 'isFinite',
+        message: 'Please use Number.isFinite instead',
+    },
+    {
+        object: 'window',
+        property: 'isFinite',
+        message: 'Please use Number.isFinite instead',
+    },
+    {
+        object: 'global',
+        property: 'isNaN',
+        message: 'Please use Number.isNaN instead',
+    },
+    {
+        object: 'self',
+        property: 'isNaN',
+        message: 'Please use Number.isNaN instead',
+    },
+    {
+        object: 'window',
+        property: 'isNaN',
+        message: 'Please use Number.isNaN instead',
+    },
+    {
+        property: '__defineGetter__',
+        message: 'Please use Object.defineProperty instead.',
+    },
+    {
+        property: '__defineSetter__',
+        message: 'Please use Object.defineProperty instead.',
+    },
+    {
+        object: 'Math',
+        property: 'pow',
+        message: 'Use the exponentiation operator (**) instead.',
+    },
+];
+
+/** @type {import('eslint').Linter.Config} */
+const config = {
+    root: true,
+    parser: '@typescript-eslint/parser',
+    parserOptions: {
+        ecmaFeatures: {
+            globalReturn: true,
+            generators: false,
+            objectLiteralDuplicateProperties: false,
+            jsx: true,
+        },
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+    },
+    // Those are globals, see https://github.com/sindresorhus/globals/blob/main/globals.json
+    // This package no longer accepts new environments, so it'll be stuck at es2021
+    env: {
+        es2021: true,
+        node: true,
+    },
+    plugins: [
+        'import',
+        'prettier',
+        'react',
+        'react-hooks',
+        'react-compiler',
+        '@typescript-eslint',
+        'datadog',
+        'arca',
+        'json',
+        'jsx-a11y',
+        'object-merge',
+        'es',
+        'unused-imports',
+        'testing-library',
+        'jsdoc',
+    ],
+    reportUnusedDisableDirectives: true, // mark unused ESLint suppressions (eslint-disable*)
+    settings: {
+        // React plugin, configured with the right version
+        react: {
+            pragma: 'React',
+            version: '17.0.2',
+        },
+        'import/resolver': {
+            node: {},
+            typescript: {
+                alwaysTryTypes: true,
+                project: 'tsconfig.json',
+            },
+        },
+    },
+    rules: {
+        'block-scoped-var': 'error',
+        curly: ['error', 'all'],
+        eqeqeq: [
+            'error',
+            'always',
+            {
+                null: 'ignore',
+            },
+        ],
+        'guard-for-in': 'error',
+        'no-alert': 'warn',
+        'no-caller': 'error',
+        'no-case-declarations': 'error',
+        'no-empty-function': [
+            'error',
+            {
+                allow: [
+                    'arrowFunctions',
+                    'functions',
+                    'methods',
+                    'constructors',
+                ],
+            },
+        ],
+        'no-empty-pattern': 'error',
+        'no-eval': 'error',
+        'no-extend-native': 'error',
+        'no-extra-bind': 'error',
+        'no-extra-label': 'error',
+        'no-fallthrough': 'error',
+        'no-global-assign': [
+            'error',
+            {
+                exceptions: [],
+            },
+        ],
+        'no-implied-eval': 'error',
+        'no-iterator': 'error',
+        'no-labels': [
+            'error',
+            {
+                allowLoop: false,
+                allowSwitch: false,
+            },
+        ],
+        'no-lone-blocks': 'error',
+        'no-loop-func': 'error',
+        'no-multi-str': 'error',
+        'no-new': 'error',
+        'no-new-func': 'error',
+        'no-new-wrappers': 'error',
+        'no-octal': 'error',
+        'no-octal-escape': 'error',
+        'no-param-reassign': [
+            'error',
+            {
+                props: false,
+            },
+        ],
+        'no-proto': 'error',
+        'no-warning-comments': ['warn', { decoration: ['*'] }],
+        '@typescript-eslint/ban-ts-comment': [
+            'error',
+            {
+                'ts-expect-error': false, // TODO: should be enabled with `descriptionFormat`
+                'ts-ignore': true, // prefer @ts-expect-error
+                'ts-nocheck': { descriptionFormat: '^ – .+$' }, // shouldn’t be used, but it is still used in a few places
+                'ts-check': false, // allowed (specially for JS files)
+            },
+        ],
+        '@typescript-eslint/no-explicit-any': 'warn',
+        '@typescript-eslint/consistent-type-assertions': 'error', // enforce syntax "variable as type" instead of legacy "<type>variable"
+        '@typescript-eslint/no-redeclare': 'error',
+        '@typescript-eslint/no-non-null-assertion': 'warn', // We can’t ban `!`, but at least we can warn against its use
+        // TODO: add custom rule to warn `as type` (but not `as const`) as unsafe
+        // TODO: enable "@typescript-eslint/consistent-type-definitions": ["error", "interface"] for better perfs
+        'datadog/no-react-spring': [
+            'error',
+            {
+                paths: [
+                    {
+                        name: 'react-spring',
+                        message:
+                            "'react-spring' is currently only used on internal pages and isn't present in the app bundle. If you want to use it on your app, please start a discussion involving #druids to make sure we have consistent animations over the app.",
+                    },
+                ],
+            },
+        ],
+        'datadog/no-dd-imports-in-package': 'off',
+        'no-restricted-properties': restrictedProperties,
+
+        'datadog/no-jsdoc-in-jsx': 'error',
+        'jsdoc/check-access': 'warn',
+        'jsdoc/check-alignment': 'warn',
+        'jsdoc/check-param-names': 'warn',
+        'jsdoc/check-property-names': 'warn',
+        'jsdoc/check-syntax': 'warn',
+        'jsdoc/check-tag-names': 'warn',
+        'jsdoc/check-types': 'warn',
+        'jsdoc/check-values': 'warn',
+        'jsdoc/empty-tags': 'warn',
+        'jsdoc/implements-on-classes': 'warn',
+        'jsdoc/multiline-blocks': 'error',
+        'jsdoc/no-multi-asterisks': 'warn',
+        'jsdoc/no-undefined-types': 'warn',
+
+        'datadog/no-missing-table-get-row-id': [
+            'warn',
+            {
+                selector:
+                    "JSXOpeningElement[name.name='Table']:not(:has(JSXAttribute[name.name='performance'])), JSXOpeningElement[name.name='Table'] JSXAttribute[name.name='performance']:not(:has(Property[key.name='getRowId']))",
+                message:
+                    '`<Table>` component should have a defined `getRowId` property of a `performance` prop, otherwise Table performance could be not ideal (the id would be compiled by stringifying the original row data), or this could lead to a memoization issue.',
+            },
+        ],
+        'datadog/no-literal-druids-classnames': [
+            'error',
+            {
+                selector: restrictClassNames(['druids_[\\w_-]+']),
+                message:
+                    'We should not rely on DRUIDS classNames, please replace with your own className or use a proper component for what you want to achieve.',
+            },
+        ],
+        'datadog/no-literal-druids-theme-classnames': [
+            'error',
+            {
+                selector: restrictClassNames(['dark-mode', 'light-mode']),
+                message:
+                    "We should not use literal values of theme classNames, please use it from `import { ThemeClassNames } from '@druids/ui/lib/color/theme';` instead.",
+            },
+            {
+                selector: restrictClassNames([
+                    'druids-contrast--system',
+                    'druids-contrast--default',
+                    'druids-contrast--high',
+                ]),
+                message:
+                    "We should not use literal values of contrast classNames, please use them from `import { DRUIDS_CONTRAST_DEFAULT, DRUIDS_CONTRAST_HIGH } from '@druids/ui/lib/color/theme/theme.constants';` instead.",
+            },
+            {
+                selector: restrictClassNames(['druids-theme-root']),
+                message:
+                    "We should not use literal value for the theme root, please use it from `import { DRUIDS_THEME_ROOT } from '@druids/ui/lib/color/theme/theme.constants';` instead.",
+            },
+        ],
+        'no-restricted-globals': [
+            'error',
+            {
+                name: 'event',
+                message:
+                    'Legacy deprecated `window.event`. This has already been removed from the standard.',
+            },
+            {
+                name: 'name',
+                message:
+                    'If you really need to use it, you should use `window.name` instead.',
+            },
+            {
+                name: 'ResizeObserver',
+                message:
+                    "`ResizeObserver` needs to be polyfilled. You should import `import ResizeObserver from 'resize-observer-polyfill';` instead",
+            },
+        ],
+        'no-return-assign': ['error', 'always'],
+        'no-return-await': 'error',
+        'no-script-url': 'error',
+        'no-self-assign': [
+            'error',
+            {
+                props: true,
+            },
+        ],
+        'no-self-compare': 'error',
+        'no-sequences': 'error',
+        'no-throw-literal': 'error',
+        'no-unused-expressions': [
+            'error',
+            {
+                allowShortCircuit: false,
+                allowTernary: false,
+                allowTaggedTemplates: false,
+            },
+        ],
+        'no-unused-labels': 'error',
+        'no-useless-catch': 'error',
+        'no-useless-concat': 'error',
+        'no-useless-escape': 'error',
+        'no-void': 'error',
+        'no-with': 'error',
+        'vars-on-top': 'error',
+        yoda: 'error',
+        'for-direction': 'error',
+        'getter-return': [
+            'error',
+            {
+                allowImplicit: true,
+            },
+        ],
+        'no-async-promise-executor': 'error',
+        'no-await-in-loop': 'warn',
+        'no-compare-neg-zero': 'error',
+        'no-cond-assign': ['error', 'always'],
+        'no-console': [
+            'error',
+            {
+                allow: ['warn', 'error', 'info'],
+            },
+        ],
+        'no-constant-condition': 'warn',
+        'no-control-regex': 'error',
+        'no-debugger': 'error',
+        'no-dupe-args': 'error',
+        'no-dupe-keys': 'error',
+        'no-duplicate-case': 'error',
+        'no-empty': ['error', { allowEmptyCatch: true }],
+        'no-empty-character-class': 'error',
+        'no-ex-assign': 'error',
+        'no-extra-boolean-cast': 'error',
+        'no-func-assign': 'error',
+        'no-inner-declarations': 'error',
+        'no-invalid-regexp': 'error',
+        'no-irregular-whitespace': 'error',
+        'no-misleading-character-class': 'error',
+        'no-obj-calls': 'error',
+        'no-prototype-builtins': 'error',
+        'no-regex-spaces': 'error',
+        'no-sparse-arrays': 'error',
+        'no-template-curly-in-string': 'error',
+        'no-unreachable': 'error',
+        'no-unsafe-finally': 'error',
+        'no-unsafe-negation': 'error',
+        'use-isnan': 'error',
+        'valid-typeof': [
+            'error',
+            {
+                requireStringLiterals: true,
+            },
+        ],
+        'global-require': 'error',
+        'no-buffer-constructor': 'error',
+        'no-new-require': 'error',
+        'no-path-concat': 'error',
+        'lines-around-directive': [
+            'error',
+            {
+                before: 'always',
+                after: 'always',
+            },
+        ],
+        'no-array-constructor': 'error',
+        'no-bitwise': 'error',
+        'no-lonely-if': 'error',
+        'no-multi-assign': ['error'],
+        'no-new-object': 'error',
+        'no-underscore-dangle': [
+            'error',
+            {
+                allow: [
+                    '__REDUX_DEVTOOLS_EXTENSION__',
+                    '_DATADOG_SYNTHETICS_BROWSER',
+                ],
+                allowAfterThis: true,
+                allowAfterSuper: false,
+                enforceInMethodNames: false,
+            },
+        ],
+        'no-unneeded-ternary': [
+            'error',
+            {
+                defaultAssignment: false,
+            },
+        ],
+        'one-var': ['error', 'never'],
+        'operator-assignment': ['error', 'always'],
+        quotes: [
+            'error',
+            'single',
+            {
+                avoidEscape: true,
+            },
+        ],
+        'spaced-comment': [
+            'error',
+            'always',
+            {
+                line: {
+                    exceptions: ['-', '+'],
+                    markers: ['=', '!', '/'],
+                },
+                block: {
+                    exceptions: ['-', '+'],
+                    markers: ['=', '!', ':', '::'],
+                    balanced: true,
+                },
+            },
+        ],
+        'no-delete-var': 'error',
+        'no-label-var': 'error',
+        '@typescript-eslint/no-shadow': 'error',
+        'no-shadow-restricted-names': 'error',
+        'no-undef-init': 'error',
+        'constructor-super': 'error',
+        'no-class-assign': 'error',
+        'no-const-assign': 'error',
+        '@typescript-eslint/no-dupe-class-members': 'error',
+        'no-new-symbol': 'error',
+        'no-this-before-super': 'error',
+        'no-useless-computed-key': 'error',
+        'no-useless-rename': [
+            'error',
+            {
+                ignoreDestructuring: false,
+                ignoreImport: false,
+                ignoreExport: false,
+            },
+        ],
+        'no-var': 'error',
+        'object-shorthand': ['warn', 'always'],
+        'prefer-const': [
+            'error',
+            {
+                destructuring: 'any',
+                ignoreReadBeforeAssign: true,
+            },
+        ],
+        'prefer-numeric-literals': 'error',
+        'prefer-rest-params': 'error',
+        'prefer-spread': 'error',
+        'prefer-template': 'error',
+        'require-yield': 'error',
+        'symbol-description': 'error',
+        'import/no-unresolved': [
+            'error',
+            {
+                commonjs: true,
+                caseSensitive: true,
+                ignore: ['!#'],
+            },
+        ],
+        'import/export': 'error',
+        'import/no-default-export': 'warn',
+        'import/no-extraneous-dependencies': [
+            'error',
+            {
+                devDependencies: [
+                    // Those are FrontEnd files that can import "@vrt-lib/node" which is marked as a devDep
+                    // But they shouldn't be able to import other node builtins or other node related code
+                    // so it doesn't make sense to move them to the node, nor the test section
+                    // TODO: investigate that later
+                    '**/*.vrt-case.tsx',
+                ],
+            },
+        ],
+        'import/no-mutable-exports': 'error',
+        'import/no-amd': 'error',
+        'import/first': 'error',
+        'import/no-duplicates': 'error',
+        'import/newline-after-import': 'error',
+        'import/no-absolute-path': 'error',
+        'import/no-dynamic-require': 'error',
+        'import/no-named-default': 'error',
+        'import/no-self-import': 'error',
+        'import/no-useless-path-segments': 'error',
+        strict: ['error', 'never'],
+        'react/jsx-boolean-value': ['error', 'never'],
+        'react/jsx-curly-brace-presence': [
+            'error',
+            {
+                props: 'never',
+                children: 'never',
+                propElementValues: 'always',
+            },
+        ],
+        'react/jsx-filename-extension': [
+            'error',
+            { extensions: ['.tsx', '.jsx'] },
+        ],
+        'react/jsx-key': 'error',
+        'react/jsx-no-comment-textnodes': 'error',
+        'react/jsx-no-constructed-context-values': 'warn',
+        'react/jsx-no-duplicate-props': 'error',
+        'react/jsx-no-target-blank': 'error',
+        'react/jsx-no-undef': 'error',
+        'react/jsx-uses-vars': 'error',
+        'react/no-children-prop': 'error',
+        'react/no-danger-with-children': 'error',
+        'react/no-deprecated': 'error',
+        'datadog/prevent-react-render': [
+            'warn',
+            {
+                module: 'react-dom',
+                names: ['render', 'unmountComponentAtNode'],
+                reason: 'Prefer using "createRoot" from "@spa-lib/create-root"',
+            },
+        ],
+        'datadog/prevent-react-table': [
+            'error',
+            {
+                module: 'react-table',
+                names: ['Column'],
+                reason: 'Use "TableColumn" from "@druids/ui/table/Table" instead',
+            },
+            {
+                module: 'react-table',
+                names: ['Row'],
+                reason: 'Use "TableRow" from "@druids/ui/table/Table" instead',
+            },
+        ],
+        'datadog/no-window-open': 'warn',
+        'datadog/no-render-in-app-for-vrt': [
+            'error',
+            {
+                module: '@lib/testing-framework/render-in-app-for-vrt.test-helpers',
+                names: ['renderInAppForVRT'],
+                reason: 'renderInAppForVRT should only be used in *.vrt-case.tsx files',
+            },
+        ],
+        'datadog/prefer-spa-components': [
+            'warn',
+            {
+                module: '@druids/ui/typography/Markdown',
+                names: ['Markdown'],
+                reason: 'Prefer using "Markdown" from "@spa-toolkit/markdown/Markdown"',
+            },
+            {
+                module: '@druids/ui/autocomplete/MarkdownEditor',
+                names: ['MarkdownEditor'],
+                reason: 'Prefer using "MarkdownEditor" from "@spa-toolkit/markdown/MarkdownEditor"',
+            },
+            {
+                module: '@druids/ui/misc/ErrorBoundary',
+                names: ['ErrorBoundary'],
+                reason: 'Use SPA’s "ErrorBoundary" (from "@spa-components/error-boundary") instead of the DRUIDS one directly',
+            },
+            // TODO: make Link and openInNewTab errors
+            {
+                module: '@druids/ui/nav/Link',
+                names: ['Link'],
+                reason: 'Use SPA’s "SPALink" (from "@spa-components/link") instead of the DRUIDS Link directly. See https://spa-docs.us1.prod.dog/navigation/SpaLink#differences-between-druids-link-and-spalink for more details',
+            },
+            {
+                module: '@framework-lib/browser',
+                names: ['openInNewTab'],
+                reason: 'Prefer `spaOpenInNewTab` (or a sibling function) from "@spa-lib/open-tab" when operating inside the Datadog SPA.',
+            },
+            {
+                module: '@druids/ui/lib/browser/safe-window-open',
+                names: ['safeWindowOpen'],
+                reason: 'Prefer `spaOpenInNewTab` or `pushPage` when operating inside the Datadog SPA.',
+            },
+            {
+                module: '@druids/ui/layout/SidebarLayout',
+                names: ['SidebarLayout'],
+                reason: 'Use SPA’s "SidebarLayout" (from "@spa-components/sidebar-layout") instead of the DRUIDS one directly',
+            },
+            {
+                module: '@lib/datadog-regions/get-region-metadata',
+                names: ['getRegionMetadata'],
+                reason: 'Use `getRegionMetadata` from `@spa-lib/get-region-metadata` when inside the SPA (it falls back to the current datacenter by default)',
+            },
+        ],
+        'datadog/prefer-spa-time-components': [
+            'error',
+            {
+                module: '@druids/ui/time/DateRangePicker',
+                names: ['DateRangePicker'],
+                reason: 'Use SPA’s "DateRangePicker" (from "@spa-toolkit/time/DateRangePicker") instead of the DRUIDS one directly',
+            },
+            {
+                module: '@druids/ui/time/FormattedTime',
+                names: ['FormattedTime'],
+                reason: 'Use SPA’s "FormattedTime" (from "@spa-toolkit/time/FormattedTime") instead of the DRUIDS one directly',
+            },
+            {
+                module: '@druids/ui/time/TimeRangeIndicator',
+                names: ['TimeRangeIndicator'],
+                reason: 'Use SPA’s "TimeRangeIndicator" (from "@spa-toolkit/time/TimeRangeIndicator") instead of the DRUIDS one directly',
+            },
+        ],
+        'datadog/prefer-feature-flag-react-hook': [
+            'warn',
+            {
+                module: '@lib/experiments',
+                names: ['isExperimentEnabledSync'],
+                reason: 'Prefer using the "useIsExperimentEnabled" React hook. For more information, please refer to https://datadoghq.atlassian.net/wiki/x/6A6qog',
+            },
+        ],
+        'datadog/feature-flag-functions-check': [
+            'error',
+            {
+                module: '@lib/experiments',
+                names: ['useIsExperimentEnabled'],
+                reason: 'Enforce array destructuring with at least one element for useIsExperimentEnabled function, please refer to https://datadoghq.atlassian.net/wiki/x/6A6qog',
+            },
+        ],
+        'datadog/prevent-imports': [
+            'error',
+            {
+                module: 'react',
+                names: ['FC', 'VoidFunctionComponent', 'VFC'],
+                reason: 'Prefer React.FunctionComponent',
+            },
+        ],
+        'react/no-direct-mutation-state': 'error',
+        'react/no-find-dom-node': 'error',
+        'react/no-is-mounted': 'error',
+        'react/no-render-return-value': 'error',
+        'react/no-unknown-property': 'error',
+        'react/require-render-return': 'error',
+        'react/no-unsafe': ['warn', { checkAliases: true }], // TODO: turn to error
+        'react/self-closing-comp': [
+            'error',
+            {
+                component: true,
+                html: true,
+            },
+        ],
+        // Only set so that yarn eslint --rules=datadog/impose-code-structure can be be run on any files
+        // and should be enabled in the long term
+        'datadog/scoped-lodash-imports': 'error',
+        'datadog/impose-code-structure': 'warn',
+        'datadog/no-disable-csr': 'warn', // TODO: switch to error
+        'datadog/no-private-files': ['error', { privateChar: '_' }],
+        'datadog/no-render-in-app-inside-static-apps': 'error',
+        'datadog/no-feature-flag-global-checks': 'warn',
+        'datadog/no-render-in-static-app-outside-static-apps': 'error',
+        'datadog/no-native-modules': [
+            'error',
+            {
+                allowBuiltIns: true, // TODO: switch to false later
+                // Those are here because they are also set in the package.json
+                // So importing `util` for instance will return the npm one, instead of the native one.
+                // They are for now flagged as allowed.
+                // TODO: Get rid of those
+                allowedModules: [
+                    'buffer',
+                    'events',
+                    'process',
+                    'string_decoder',
+                ],
+                enforceNodePrefix: true,
+            },
+        ],
+        'datadog/prefer-lib-case': [
+            'warn',
+            {
+                patterns: [
+                    {
+                        group: ['lodash/camelCase'],
+                        message: "Use '@lib/case/camel-case' instead.",
+                    },
+                    {
+                        group: ['lodash/kebabCase'],
+                        message: "Use '@lib/case/kebab-case' instead.",
+                    },
+                    {
+                        group: ['lodash/snakeCase'],
+                        message: "Use '@lib/case/snake-case' instead.",
+                    },
+                ],
+            },
+        ],
+        'datadog/prefer-lib-immer': 'error',
+        'datadog/prefer-lib-is-equal': 'warn',
+        'datadog/prefer-lib-monaco': 'error',
+        'datadog/prefer-lib-user-event': 'error',
+        'react/no-danger': 'error',
+        'react-hooks/rules-of-hooks': 'error',
+        'react-hooks/exhaustive-deps': [
+            'error',
+            {
+                additionalHooks:
+                    // Apart from use*Effect() hooks, we also want to enforce exhaustive-deps
+                    // for useConcurrentMemo() from @lib/concurrency
+                    '(^use[A-Z][a-zA-Z_0-9]+Effect$|^useConcurrentMemo$)',
+            },
+        ],
+        'react-compiler/react-compiler': 'warn',
+        'unused-imports/no-unused-imports': ['error'],
+        '@typescript-eslint/no-unused-vars': [
+            'error',
+            {
+                ignoreRestSiblings: true,
+                // args should be set to 'after-used' or to 'all'
+                // and it should be used with argsIgnorePattern
+                // argsIgnorePattern: '^_',
+                args: 'none',
+                caughtErrors: 'none',
+            },
+        ],
+        '@typescript-eslint/consistent-type-imports': [
+            'error',
+            {
+                prefer: 'type-imports',
+                fixStyle: 'separate-type-imports',
+                disallowTypeAnnotations: false,
+            },
+        ],
+        'arca/import-ordering': [
+            'error',
+            { sections: ['^(dd|doggo|web-ui)/', '^\\.\\./', '^\\./'] },
+        ],
+        'arca/newline-after-import-section': [
+            'error',
+            { sections: ['^(dd|doggo|web-ui)/', '^\\.\\./', '^\\./'] },
+        ],
+        'arca/jsx-import-react': ['error'],
+        // This prettier rule also does the job of others, like `comma-dangle`
+        'prettier/prettier': [
+            'error',
+            {},
+            {
+                fileInfoOptions: {
+                    ignorePath: '.eslintignore',
+                },
+            },
+        ],
+        'json/undefined': ['error'],
+        'json/enum-value-mismatch': ['error'],
+        'json/unexpected-end-of-comment': ['error'],
+        'json/unexpected-end-of-string': ['error'],
+        'json/unexpected-end-of-number': ['error'],
+        'json/invalid-unicode': ['error'],
+        'json/invalid-escape-character': ['error'],
+        'json/invalid-character': ['error'],
+        'json/property-expected': ['error'],
+        'json/comma-expected': ['error'],
+        'json/colon-expected': ['error'],
+        'json/value-expected': ['error'],
+        'json/comma-or-close-backet-expected': ['error'],
+        'json/comma-or-close-brace-expected': ['error'],
+        'json/trailing-comma': ['error'],
+        'json/duplicate-key': ['error'],
+        'json/comment-not-permitted': ['error'],
+        'json/schema-resolve-error': ['error'],
+        'json/unknown': ['error'],
+        'jsx-a11y/no-static-element-interactions': [
+            'warn',
+            {
+                handlers: [
+                    'onClick',
+                    'onMouseDown',
+                    'onMouseUp',
+                    'onKeyPress',
+                    'onKeyDown',
+                    'onKeyUp',
+                ],
+            },
+        ],
+        'object-merge/no-side-effects': ['error'],
+        'datadog/no-unit-tests': [
+            'error',
+            {
+                patterns: [
+                    '*.unit.{js,jsx,ts,tsx}',
+                    '*.unit',
+                    '*.test.{js,jsx,ts,tsx}',
+                    '*.test',
+                ],
+            },
+        ],
+        'datadog/no-vrt': [
+            'error',
+            { patterns: ['*.vrt-case.tsx', '*.vrt-case'] },
+        ],
+        'datadog/no-js-cookie': [
+            'error',
+            {
+                name: 'js-cookie',
+                message: 'Please import @lib/cookie instead.',
+            },
+        ],
+        'datadog/no-testing-library-dom': [
+            'error',
+            {
+                paths: [
+                    {
+                        name: '@testing-library/dom',
+                        message: "Please use '@testing-library/react' instead",
+                    },
+                ],
+            },
+        ],
+        'datadog/no-dd-router': [
+            'error',
+            {
+                name: '@router/dd-router',
+                message:
+                    "Please use hooks imported from '@router/navigation' instead. See https://datadoghq.atlassian.net/wiki/spaces/FFR/pages/4019225282/Migration+Plan+Decoupling+Routing+from+Redux+in+web-ui for more details.",
+            },
+        ],
+        'datadog/no-lodash-noop': [
+            'warn',
+            {
+                name: 'lodash/noop',
+                message: 'Please use @lib/noop instead.',
+            },
+        ],
+        // Safari is not supporting those
+        'es/no-regexp-lookbehind-assertions': 'error',
+        'datadog/no-relative-path-beyond-package': 'error',
+        'datadog/no-testing-utilities-in-application-code': 'error',
+        'datadog/no-array-reduce-without-initial-value': 'warn',
+    },
+    overrides: [
+        {
+            files: [
+                // Only DPX-owned paths
+                'packages/api/endpoints/event-platform/**/*.{js,jsx,ts,tsx}',
+                'packages/apps/events-ui/**/*.{js,jsx,ts,tsx}',
+                'packages/global/router/events-ui/**/*.{js,jsx,ts,tsx}',
+            ],
+            excludedFiles: [
+                'packages/apps/events-ui/toolkit/search-bar/**/*.{js,jsx,ts,tsx}',
+                'packages/apps/events-ui/toolkit/search-bar-adapter/**/*.{js,jsx,ts,tsx}',
+            ],
+            rules: {
+                'datadog/no-product-specific-code-in-dpx-scope': 'error',
+            },
+        },
+        {
+            files: ['**/cost/**/*.{js,jsx,ts,tsx,mdx}'],
+            excludedFiles: [
+                '**/*.unit.*',
+                '**/cost/**/optimization/**',
+                '**/cost/**/recommendation-builder/**',
+                '**/cost/**/recommendations-stream/**',
+                '**/cost/**/recommendations-ui/**',
+                '**/cost/**/PageSummary/**',
+                'packages/apps/cost/toolkit/hooks/use-currency-symbol.ts',
+                'packages/apps/cost/lib/shared/integration-id-for-service-name.ts',
+                'javascript/datadog/billing/cost/components/shared/Table/shared/table.util.tsx',
+                'javascript/datadog/billing/cost/components/shared/Table/shared/MultiMonthSummaryTable/multi-month-summary-table.util.tsx',
+                'javascript/datadog/profiling/components/cost/ServiceCostExplanation.tsx',
+                'javascript/datadog/profiling/components/cost/ServiceCostPage.tsx',
+            ],
+            rules: {
+                'datadog/no-dollar-as-currency': 'error',
+            },
+        },
+        {
+            files: ['packages/apps/*/lib/constants/**/*.{ts,tsx}'],
+            rules: {
+                'datadog/restrict-nodes': ['error', { allowConstants: true }],
+            },
+        },
+        {
+            files: ['packages/**/*.{js,jsx,ts,tsx,mdx}'],
+            rules: {
+                'datadog/impose-code-structure': 'off',
+                'datadog/no-disable-csr': 'off',
+                'datadog/no-dd-imports-in-package': 'error',
+                'datadog/no-node-imports-in-browser-or-iso-files': 'error',
+                'datadog/no-array-reduce-without-initial-value': 'error',
+            },
+        },
+        {
+            files: [
+                'javascript/datadog/**/*.{js,jsx,ts,tsx,mdx}',
+                'packages-to-migrate/**/*.{js,jsx,ts,tsx,mdx}',
+                'internal-apps/**/*.{js,jsx,ts,tsx,mdx}',
+                'static-apps/**/*.{js,jsx,ts,tsx,mdx}',
+                'services/**/*.{js,jsx,ts,tsx,mdx}',
+                'public/**/*.js',
+                'packages/api/**/*.{js,jsx,ts,tsx,mdx}',
+                'packages/apps/**/*.{js,jsx,ts,tsx,mdx}',
+                'packages/global/**/*.{js,jsx,ts,tsx,mdx}',
+                'packages/lib/**/*.{js,jsx,ts,tsx,mdx}',
+            ],
+            env: {
+                browser: true,
+                commonjs: true,
+                node: false,
+            },
+            settings: {
+                'import/extensions': extensions,
+                'import/resolver': {
+                    node: {
+                        extensions,
+                    },
+                },
+            },
+        },
+        {
+            files: [
+                'javascript/datadog/**/*.{js,jsx,ts,tsx,mdx}',
+                'packages-to-migrate/**/*.{js,jsx,ts,tsx,mdx}',
+                'internal-apps/**/*.{js,jsx,ts,tsx,mdx}',
+                'static-apps/**/*.{js,jsx,ts,tsx,mdx}',
+                'services/**/*.{js,jsx,ts,tsx,mdx}',
+                'packages/api/**/*.{js,jsx,ts,tsx,mdx}',
+                'packages/apps/**/*.{js,jsx,ts,tsx,mdx}',
+                'packages/global/**/*.{js,jsx,ts,tsx,mdx}',
+                'packages/lib/**/*.{js,jsx,ts,tsx,mdx}',
+                'yarn.config.js',
+                'build/scripts/commands/**/*.{js,jsx,ts,tsx}',
+            ],
+            globals: {
+                DD: 'readonly',
+                preval: 'readonly',
+                IS_PROD: 'readonly',
+                IS_DEV: 'readonly',
+                IS_TEST: 'readonly',
+                IS_HOT: 'readonly',
+                IS_DRUIDS_PRIVATE: 'readonly',
+                STATIC_BRANCH: 'readonly',
+                STATIC_HASH: 'readonly',
+            },
+            settings: {
+                'import/resolver': {
+                    // "node: {}" allows using native libs like FS or PATH in the FE
+                    // TODO: it should be removed in the future
+                    // as we don't want to rely on node native libs in the FE
+                    // but as we currently do (for PATH), I allowed it
+                    node: {},
+                    webpack: {
+                        env: {
+                            warmup: false,
+                        },
+                    },
+                },
+            },
+        },
+        {
+            files: ['**/*.{js,jsx,ts,tsx}'],
+            rules: {
+                'datadog/no-absolute-packages-imports': 'error',
+                'datadog/no-dist-imports': 'error',
+                'datadog/suggest-package': 'warn',
+            },
+        },
+        {
+            files: [
+                // replay sandbox
+                'internal-apps/session-replay-isolated-sandbox/**/*.{js,jsx,ts,tsx}',
+            ],
+            rules: {
+                'datadog/no-absolute-replay-sandbox-imports': 'error',
+                'datadog/no-absolute-packages-imports': 'off',
+            },
+        },
+        // These warnings need to be defined before the errors to prevent overriding them
+        {
+            files: [
+                'javascript/datadog/dataviz/viz/cluster-map/*.{ts,tsx,js,jsx}',
+                'javascript/datadog/widgets/components/toolkit/**/*.{js,jsx,ts,tsx}',
+                'javascript/datadog/events-ui/**/*.{ts,tsx,js,jsx}',
+            ],
+            rules: {
+                'datadog/impose-code-structure': 'warn',
+            },
+        },
+        {
+            files: [
+                // entrypoints of the spa code
+                'javascript/datadog/single-page-app/components/layout/Page/Page.tsx',
+                // all dataviz components except for a couple exceptions
+                'javascript/datadog/dataviz/viz/!(cluster-map)/*.{ts,tsx,js,jsx}',
+                'javascript/datadog/dataviz/viz/!(cluster-map)/**/*.{ts,tsx,js,jsx}',
+                // all components/ui (including future ones), except those ine the list
+                'javascript/datadog/!(error-tracking|network|orchestration|process|rum|slo|synthetics)/components/ui/**/*.{js,jsx,ts,tsx}',
+                // all components/toolkit (including future ones)
+                'javascript/datadog/!(widgets)/components/toolkit/**/*.{js,jsx,ts,tsx}',
+                // all lib/shared (including future ones)
+                'javascript/datadog/**/lib/shared/**/*.{js,jsx,ts,tsx}',
+                // all lib/toolkit (including future ones)
+                'javascript/datadog/**/lib/toolkit/**/*.{js,jsx,ts,tsx}',
+                // all lib/api
+                'javascript/datadog/lib/api/**/*.{js,jsx,ts,tsx}',
+                // all lib/user at the root
+                'javascript/datadog/lib/user/*.{js,jsx,ts,tsx}',
+                // all lib/api for trace TODO: make non compliant folders the exception instead
+                'javascript/datadog/trace/lib/api/*.{js,jsx,ts,tsx}',
+                // all .lazy files and all .redux-dynamic-module files
+                'javascript/datadog/**/*.lazy.{js,jsx,ts,tsx}',
+                // all apps that already pass linting
+                'javascript/datadog/(outages|marketplace|trial|authentication|masquerade|workflow-automation)/**/*.{js,jsx,ts,tsx}',
+                // Enforce lazy loading in Routes files
+                'javascript/datadog/**/*Routes.{js,jsx,ts,tsx}',
+                'javascript/datadog/**/*.routes.{js,jsx,ts,tsx}',
+            ],
+            rules: {
+                'datadog/impose-code-structure': 'error',
+            },
+        },
+        {
+            files: [
+                // replay sandbox lib
+                'packages/apps/rum/lib/replay-sandbox/**/*.{js,jsx,ts,tsx}',
+                // replay render lib
+                'packages/apps/rum/lib/replay-renderer/**/*.{js,jsx,ts,tsx}',
+                // replay sandbox
+                'internal-apps/session-replay-isolated-sandbox/**/*.{js,jsx,ts,tsx}',
+            ],
+            rules: {
+                'datadog/impose-code-structure': ['error', replayConfig],
+            },
+        },
+        {
+            files: [
+                'packages-to-migrate/rum-replay-renderer-lib/**/*.{js,jsx,ts,tsx}',
+            ],
+            rules: {
+                // Doesn't use React so can use @testing-library/dom
+                'datadog/no-testing-library-dom': 'off',
+            },
+        },
+        {
+            files: [
+                'packages/apps/doggo-extension/private/runtime/extension/sources/**/*.{js,jsx,ts,tsx}',
+            ],
+            globals: {
+                chrome: 'readonly',
+                VERSION: 'readonly',
+                VERSION_STRING: 'readonly',
+            },
+        },
+        {
+            files: ['**/*.{ts,tsx}'],
+            rules: {
+                '@typescript-eslint/no-require-imports': 'warn',
+                'datadog/prevent-import-declaration-type': 'error',
+            },
+        },
+        {
+            files: ['**/index.{js,jsx,ts,tsx}'],
+            rules: {
+                'datadog/restrict-index-files': ['warn'],
+            },
+        },
+        {
+            files: ['**/*.types.{ts,tsx}', '**/types.{ts,tsx}'],
+            rules: {
+                'datadog/restrict-import-types': [
+                    'error',
+                    {
+                        allowedExtensions: ['types'],
+                    },
+                ],
+                'datadog/restrict-nodes': ['warn'],
+            },
+        },
+        {
+            files: [
+                '**/*.constants.{ts,tsx}',
+                '**/constants.{ts,tsx}',
+                '**/*-constants.{ts,tsx}',
+            ],
+            rules: {
+                'datadog/restrict-import-types': [
+                    'error',
+                    {
+                        allowedExtensions: [
+                            'types',
+                            'constants',
+                            'svg',
+                            'png',
+                            'jpg',
+                            'jpeg',
+                        ],
+                    },
+                ],
+                'datadog/restrict-nodes': ['warn', { allowConstants: true }],
+            },
+        },
+        {
+            files: [
+                // @druids/public-styleguide is the only exception as it's the styleguide but with a different env var
+                'static-apps/public-styleguide/**/*.{tsx,ts,js,jsx,mdx}',
+            ],
+            rules: {
+                'datadog/no-public-styleguide': 'off',
+            },
+        },
+        {
+            // @lib/cookie package overrides.
+            files: ['packages/lib/cookie/**'],
+            rules: {
+                'datadog/no-js-cookie': 'off',
+            },
+        },
+
+        // Files running in a Node environment
+        // They can import node builtins and other devDeps, plus use `require`, use the console, and other
+        // node specific behaviors
+        {
+            files: [
+                'build/**/*.{js,ts}',
+                'budget.ts',
+                '*.config.js',
+                '.github/workflows/*',
+                '**/webpack.config.js',
+                'packages/apps/devx/lib/send-beacon/**/*.{js,jsx,ts,tsx}',
+                'packages-to-migrate/styleguide-builder/**/*.{js,jsx,ts,tsx}', // TODO: Remove this line
+                'packages-to-migrate/github-helpers/**/*.{js,jsx,ts,tsx}',
+                'packages-to-migrate/eslint-plugin-datadog/**/*.{js,jsx,ts,tsx}',
+                'packages/apps/vrt/private/runtime/cli/**/*.{js,jsx,ts,tsx}',
+                'internal-apps/docs-builder/webpack/**/*.{js,jsx,ts,tsx}',
+                'internal-apps/docs-builder/build/**/*.{js,jsx,ts,tsx}',
+                'internal-apps/**/webpack-config-override.js',
+                'static-apps/code-structure-rank/src/*.{js,jsx,ts,tsx}',
+                '*.node.{js,jsx,ts,tsx}',
+                '**/*.preval.js', // preval files are node scripts executed during the compilation. See https://datadoghq.atlassian.net/wiki/spaces/FRON/pages/2617639144/Preval
+                'services/**/*', // service code is bundled so the dependency list only includes deps used for running the bundled code
+                '**/scripts/**', // code in scripts/ folders are meant to contain node scripts
+                '**/cli/**', // code in cli/ folders are meant to contain node command line interfaces
+                'internal-apps/event-platform-console/copy-to-other-dcs.ts',
+                'internal-apps/xpq-admin/copy-to-other-dcs.ts',
+                'packages/apps/tools/**/*.{js,ts}',
+                'packages/apps/devx/**/*.{js,jsx,ts,tsx}',
+                'packages/apps/**/commands/**/*.{js,jsx,ts,tsx}',
+                '**/static-app.config.ts',
+            ],
+            settings: {
+                'import/extensions': extensions,
+                'import/resolver': {
+                    node: {
+                        extensions,
+                    },
+                    typescript: {
+                        alwaysTryTypes: true,
+                        project: 'tsconfig.json',
+                    },
+                },
+            },
+            // Those are added by webpack / esbuild, so they cannot be used in node code without definitions
+            globals: {
+                DD: 'off',
+                preval: 'off',
+                IS_PROD: 'off',
+                IS_DEV: 'off',
+                IS_TEST: 'off',
+                IS_HOT: 'off',
+                IS_DRUIDS_PRIVATE: 'off',
+                STATIC_BRANCH: 'off',
+                STATIC_HASH: 'off',
+            },
+            rules: {
+                'import/no-extraneous-dependencies': [
+                    'error',
+                    {
+                        devDependencies: true,
+                    },
+                ],
+                'datadog/restrict-import-types': 'off',
+                'datadog/restrict-index-files': 'off',
+                'datadog/restrict-nodes': 'off',
+                'no-console': 'off',
+                'no-empty': 'off',
+                'global-require': 'off',
+                'import/no-dynamic-require': 'off',
+                '@typescript-eslint/no-unused-vars': 'warn',
+                'guard-for-in': 'warn',
+                'no-fallthrough': 'warn',
+                'no-lone-blocks': 'warn',
+                'no-return-await': 'warn',
+                'es/no-regexp-lookbehind-assertions': 'off',
+                'react-compiler/react-compiler': 'off', // No need to run the compiler for node files
+            },
+            env: {
+                node: true,
+            },
+        },
+        {
+            files: ['**/*.{js,jsx}'],
+            rules: {
+                'no-undef': 'error',
+                'import/named': 'error',
+            },
+        },
+        {
+            files: ['**/*.d.{ts,tsx}', '**/d.{ts,tsx}'],
+            rules: {
+                'datadog/restrict-nodes': ['error', { isDeclaration: true }],
+            },
+        },
+
+        // Files running in a test environment
+        // Like the node env, they can import node builtins and dev deps,
+        // but they also have access to globals like `expect`
+        {
+            plugins: ['jest'],
+            files: [
+                '**/__mocks__/**/*.{js,jsx,ts,tsx}',
+                '**/__tests__/**/*.{js,jsx,ts,tsx}',
+                '**/tests/**/*.{js,jsx,ts,tsx}',
+                '**/test/**/*.{js,jsx,ts,tsx}',
+                '*.mock.{js,jsx,ts,tsx}',
+                '*.test.{js,jsx,ts,tsx}', // include all *.unit.test.* / *.vrt.test.* / *.integration.test.* / *.node.test.* / etc.
+                '*.unit.{js,jsx,ts,tsx}', // TODO: switch to *.unit.test.*
+                'test-helpers.*',
+                '*.test-helpers.*',
+                '**/test-helpers/**/*.{js,jsx,ts,tsx}',
+                '*.fixtures.*',
+                'fixtures.*',
+                '*test.utils.*',
+                'build/jest/*.{js,jsx,ts,tsx}',
+                'packages/apps/tools/toolkit/jest/**/*.{js,jsx,ts,tsx}',
+            ],
+            env: {
+                // from eslint-plugin-jest
+                jest: true,
+                node: true,
+            },
+            settings: {
+                'import/resolver': {
+                    node: {},
+                    webpack: {
+                        env: {
+                            warmup: false,
+                        },
+                    },
+                },
+            },
+            // TODO: get rid of this
+            globals: {
+                // There's no plugin for expectJS yet 2018-05
+                describe: 'readonly',
+                test: 'readonly',
+                it: 'readonly',
+            },
+            rules: {
+                // we need to be able to re-define globals like IS_PROD on a per-test basis
+                'no-global-assign': 'off',
+                'no-await-in-loop': 'off',
+                'import/no-extraneous-dependencies': [
+                    'error',
+                    {
+                        devDependencies: true,
+                    },
+                ],
+                'import/no-default-export': 'off',
+                'datadog/impose-code-structure': 'off',
+                'datadog/no-node-imports-in-browser-or-iso-files': 'off',
+                'datadog/no-private-files': 'off',
+                'datadog/prefer-user-event-await': 'error',
+                'datadog/no-literal-druids-classnames': 'warn',
+                'react/jsx-no-constructed-context-values': 'off',
+                'react-compiler/react-compiler': 'off', // No need to run the compiler for tests
+                'datadog/no-native-modules': [
+                    'error',
+                    {
+                        allowBuiltIns: true,
+                        enforceNodePrefix: true,
+                    },
+                ],
+                '@typescript-eslint/no-unused-vars': 'off', // No need to warn of unused variables for unit tests. We also need unused variables for TS tests: `type cases = [Expect<…>]` (cases will never be used)
+                'no-restricted-properties': [
+                    ...restrictedProperties,
+                    {
+                        object: 'page',
+                        property: 'goto',
+                        message: 'Use safeGoToUrl(page, url, params) instead.',
+                    },
+                ],
+                'jest/no-focused-tests': 'error',
+                'jest/no-identical-title': 'error',
+                'jest/valid-describe-callback': 'error',
+                'jest/valid-expect': 'error',
+                'jest/valid-expect-in-promise': 'error',
+                // testing-library rules from https://github.com/testing-library/eslint-plugin-testing-library
+                'testing-library/await-async-query': 'error',
+                'testing-library/await-async-utils': 'error',
+                'testing-library/no-await-sync-query': 'error',
+                'testing-library/no-wait-for-empty-callback': 'error',
+                'testing-library/no-promise-in-fire-event': 'error',
+                'testing-library/no-wait-for-snapshot': 'error',
+                // 'testing-library/prefer-find-by': 'error', // TODO: this rule has an autofix that breaks the code
+                'testing-library/prefer-wait-for': 'error',
+                'testing-library/prefer-presence-queries': 'warn', // TODO: switch to error
+                // 'testing-library/prefer-query-by-disappearance': 'warn', // TODO: switch to error
+                'testing-library/prefer-user-event': 'warn', // TODO: switch to error
+                'testing-library/prefer-explicit-assert': 'warn', // TODO: switch to error
+                'testing-library/no-wait-for-side-effects': 'warn', // TODO: switch to error
+                'testing-library/no-debugging-utils': 'warn', // This can stay a warning
+                'testing-library/no-unnecessary-act': 'warn', // TODO: switch to error
+                // 'testing-library/render-result-naming-convention': 'warn', // TODO: switch to error
+            },
+        },
+        {
+            files: ['*.worker.js'],
+            env: {
+                worker: true,
+            },
+        },
+        {
+            files: ['javascript/datadog/lib/api/**'],
+            rules: {
+                'datadog/lib-api': ['warn'],
+            },
+        },
+        {
+            // Slowly role this out
+            // TODO: add more folders
+            files: [
+                'internal-apps/{styleguide,docs-builder}/**/*.{js,jsx,ts,tsx}',
+                'static-apps/druids-vrt-viewer/**/*.{js,jsx,ts,tsx}',
+            ],
+            rules: {
+                '@typescript-eslint/no-use-before-define': [
+                    'error',
+                    {
+                        // function (const const … = () =>) are auto hoisted,
+                        // and so don't require to be moved upward.
+                        // This is set for 2 reasons:
+                        // - avoid the amount of changes in our codebase
+                        // - being able to deal with circular deps between 2 fns (impossible with arrow function as one will always be defined after usage)
+                        functions: false,
+                    },
+                ],
+            },
+        },
+        {
+            files: '*.vrt-case.tsx',
+            rules: {
+                'datadog/no-render-in-app-for-vrt': 'off',
+            },
+        },
+        {
+            // Internal-apps will have their own env, so they cannot use @spa-lib/create-root as this depends on a feature flag
+            // We can add other packages here too if needed (if they cannot use isFeatEnabled)
+            files: [
+                'internal-apps/**/*.{js,jsx,ts,tsx}',
+                'static-apps/**/*.{js,jsx,ts,tsx}',
+                'packages/apps/doggo-extension/private/runtime/extension/sources/**/*.{js,jsx,ts,tsx}',
+                'packages/apps/spa/lib/create-root/create-root.ts', // This file is allowed as it exposes the alias for those functions
+            ],
+            rules: {
+                'datadog/prevent-react-render': 'off',
+            },
+        },
+        {
+            // Only druids can import react-table
+            files: ['packages-to-migrate/druids-ui/**/*.{js,jsx,ts,tsx}'],
+            rules: {
+                'datadog/prevent-react-table': 'off',
+            },
+        },
+
+        {
+            // Low code is using templates with curly braces in their strings. It's expected
+            files: [
+                'javascript/datadog/low-code/**/*.{ts,tsx}',
+                'packages/apps/app-builder/**/*.{ts,tsx}',
+            ],
+            rules: {
+                'no-template-curly-in-string': 'off',
+            },
+        },
+        {
+            // App Builder is code in `lib/shared` into `packages-to-migrate/lib` to migrate to packages
+            files: [
+                'javascript/datadog/low-code/**/lib/shared/**/*.{ts,tsx}',
+                'javascript/datadog/low-code/components/ui/**/*.{ts,tsx}',
+            ],
+            rules: {
+                'datadog/impose-code-structure': [
+                    'error',
+                    [
+                        {
+                            name: 'migrating-lib-files',
+                            canDependOn: [
+                                'javascript/datadog/low-code/packages-to-migrate/lib/**/*.{ts,tsx}',
+                            ],
+                        },
+                    ],
+                ],
+            },
+        },
+        {
+            files: [
+                // Internal apps don't have to use spaOpenInNewTab
+                'internal-apps/**',
+                'static-apps/**',
+                'packages/apps/doggo-extension/private/runtime/extension/**',
+                // open() is pretty common in VRT tests and that's fine
+                '*.{unit,test}.{js,jsx,ts,tsx}',
+            ],
+            rules: {
+                'datadog/no-window-open': 'off',
+            },
+        },
+        {
+            files: [
+                // Documentation cannot import SPA
+                '**/*.mdx',
+                '**/*.stories.{ts,tsx}',
+                // Internal-apps cannot import SPA
+                'internal-apps/**/*.{js,jsx,ts,tsx}',
+                'static-apps/**/*.{js,jsx,ts,tsx}',
+                // Legacy packages are well scoped, so they shouldn’t be enforced to import SPA
+                'packages-to-migrate/**/*.{js,jsx,ts,tsx}',
+            ],
+            rules: {
+                'datadog/prefer-spa-components': 'off',
+                'datadog/prefer-spa-region-metadata': 'off',
+                'datadog/prefer-spa-time-components': 'off',
+            },
+        },
+        {
+            files: ['static-apps/sdp/**/*.{js,jsx,ts,tsx}'],
+            rules: {
+                'react/jsx-curly-brace-presence': ['error', 'never'],
+            },
+            env: {
+                node: true,
+            },
+        },
+        {
+            files: ['internal-apps/mobile/**/*.{js,jsx,ts,tsx}'],
+            env: {
+                node: true,
+            },
+        },
+        {
+            files: [
+                'javascript/datadog/!(apps-sdk|developer-platform)/**/*.{js,jsx,ts,tsx}',
+            ],
+            rules: {
+                'datadog/no-app-platform-apis': [
+                    'error',
+                    {
+                        patterns: ['dd/apps-sdk/ui-extensions-api'],
+                    },
+                ],
+            },
+        },
+        {
+            // Matches globs in .storybook/main.js
+            files: [STORYBOOK_EXTENSIONS_GLOB],
+            plugins: ['filename-rules'],
+            rules: {
+                'import/no-default-export': 'off',
+                'filename-rules/match': ['error', 'kebab-case'],
+            },
+        },
+        {
+            files: ['.storybook/**/*.{js,jsx,ts,tsx}'],
+            rules: {
+                'datadog/no-private-files': 'off',
+                'import/no-extraneous-dependencies': [
+                    'error',
+                    {
+                        devDependencies: true,
+                    },
+                ],
+            },
+        },
+        {
+            files: ['javascript/datadog/**/*.{js,jsx,ts,tsx}'],
+            rules: {
+                'datadog/no-react-router': [
+                    'error',
+                    {
+                        patterns: ['react-router', 'react-router/*'],
+                    },
+                ],
+            },
+        },
+        {
+            files: [
+                'build/scripts/commands/*',
+                'build/scripts/commands/*/index.{js,jsx,ts,tsx}',
+                'packages/apps/*/commands/*/main.ts',
+            ],
+            rules: {
+                'datadog/prevent-top-level-side-effects': 'warn',
+                'import/no-default-export': 'off',
+            },
+        },
+        {
+            files: [
+                'javascript/datadog/lib/router/**/*.{js,jsx,ts,tsx}',
+                'javascript/datadog/single-page-app/Router/*.{js,jsx,ts,tsx}',
+                'javascript/datadog/single-page-app/components/routing/SPALink/*.{js,jsx,ts,tsx}',
+            ],
+            rules: {
+                'datadog/no-react-router': ['off'],
+            },
+        },
+        {
+            files: ['javascript/datadog/lib/api/*.ts'],
+            rules: {
+                'filename-rules/match': [
+                    'error',
+                    /(.*?)\.(get\.ts|post\.ts|put\.ts|patch\.ts|delete\.ts|head\.ts)$/,
+                ],
+            },
+        },
+        {
+            files: ['javascript/datadog/**'],
+            excludedFiles: [
+                'packages/apps/dataviz/lib/math/gl-matrix/*',
+                'packages/apps/types/lib/datadog/gl-matrix.d.ts',
+            ],
+            rules: {
+                'datadog/no-gl-matrix-imports': [
+                    'error',
+                    {
+                        paths: [
+                            {
+                                name: 'gl-matrix',
+                                message:
+                                    "Don't import gl-matrix directly. Use custom re-exports from @dataviz-lib/math/gl-matrix/ instead.",
+                            },
+                        ],
+                        patterns: ['gl-matrix', '!@dataviz-lib/math/gl-matrix'],
+                    },
+                ],
+            },
+        },
+        {
+            files: ['**/*.mdx'],
+            parser: 'eslint-mdx',
+            // plugins: ['mdx'],
+            // processor: 'mdx/remark',
+            parserOptions: {
+                sourceType: 'module',
+                ecmaVersion: 'latest',
+            },
+            // Disable all default rules
+            rules: {
+                // Some imports aren't used directly, but used in Playgrounds. As Playgrounds are custom, ESLint cannot recognize that those variables are used. We could use a custom plugin to make this happen
+                'unused-imports/no-unused-imports': 'off',
+                '@typescript-eslint/no-unused-vars': 'off',
+                '@typescript-eslint/consistent-type-imports': 'off',
+
+                'import/no-duplicates': 'off', // Because of the webpack loader, it'll consider `./a` and `!!loader!./a` the same and will merge them (even if they shouldn't)
+                'import/no-extraneous-dependencies': 'off', // To allow imports that used inside code blocks
+
+                'import/no-self-import': 'off', // Because of the webpack loader, it'll consider `!!loader!./self` as importing itself (but this isn't true for all loaders, like Docs Builder's ones)
+                'react/jsx-filename-extension': 'off',
+                'arca/jsx-import-react': 'off',
+                'react/no-danger-with-children': 'off',
+                'react/self-closing-comp': 'off',
+                'react-compiler/react-compiler': 'off', // No need for MDX files
+                'no-unused-expressions': 'off', // We need this off to be able to inject expressions using {} in MDX
+                'no-console': 'off',
+                'react/no-children-prop': 'off', // TODO: enable. We use the children prop in a few MDXes
+                'datadog/impose-code-structure': 'off',
+                'datadog/no-private-files': ['warn', { privateChar: '_' }], // TODO: enable. We sometimes use `__tests__` files in MDXes but it shouldn't be the case
+                'no-useless-escape': 'off', // TODO: enable but there is a conflict with prettier
+                'no-undef': 'error',
+                'import/first': 'off', // Isn't compatible with MDX and can break content
+                'arca/import-ordering': 'off', // Isn't compatible with MDX and can break content
+                'arca/newline-after-import-section': 'off', // Can sometimes break with MDX
+                // 'react/jsx-curly-brace-presence': ['error', 'never'], // TODO: enable
+            },
+        },
+        {
+            files: ['*.stories.ts', '*.stories.tsx', '*.stories.helpers.ts'],
+            rules: {
+                'no-alert': 'off',
+                'import/no-extraneous-dependencies': [
+                    'error',
+                    {
+                        devDependencies: true,
+                    },
+                ],
+            },
+        },
+        {
+            files: ['docs-builder.config.ts'],
+            rules: {
+                'import/no-extraneous-dependencies': [
+                    'error',
+                    {
+                        devDependencies: true,
+                    },
+                ],
+            },
+        },
+        {
+            files: ['*.routes.{js,jsx,ts,tsx}'],
+            rules: {
+                'datadog/no-feature-flag-global-checks': 'off',
+            },
+        },
+        {
+            files: [
+                'internal-apps/**/*.{js,jsx,ts,tsx,mdx}',
+                'static-apps/**/*.{js,jsx,ts,tsx,mdx}',
+            ],
+            rules: {
+                // Internal/static apps are allowed to import private files,
+                // since they are mostly used for internal documentation or tooling
+                'datadog/no-private-files': 'off',
+            },
+        },
+        {
+            files: [
+                'javascript/datadog/synthetics/**/*.{js,jsx,ts,tsx}',
+                'packages/apps/synthetics/**/*.{js,jsx,ts,tsx}',
+                'packages/api/endpoints/synthetics/**/*.{js,jsx,ts,tsx}',
+            ],
+            rules: {
+                'capitalized-comments': [
+                    'error',
+                    'always',
+                    {
+                        ignorePattern: '[a-z]+[A-Z]w*|[a-z]+[\\.-][a-zA-Z]+', // Allow camelCase words (e.g. variables or functions), dash-separated words (e.g. file names) and dot-separated words (e.g. URLs)
+                        ignoreConsecutiveComments: true,
+                    },
+                ],
+            },
+        },
+
+        {
+            // Email is implementing its own table component, so we don't want to apply rules for the DRUIDS table component
+            files: ['packages/apps/email/**/*.{js,jsx,ts,tsx}'],
+            rules: {
+                'datadog/no-missing-table-get-row-id': 'off',
+            },
+        },
+    ],
+};
+
+module.exports = config
