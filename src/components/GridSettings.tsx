@@ -25,18 +25,18 @@ export const GridSettings: React.FC<GridSettingsProps> = ({
   const marks = [
     { value: 1 },
     { value: 6 },
-    { value: 12 },
-    { value: 24 },
-    { value: 36 },
-    { value: 48 },
-    { value: 60 },
-    { value: 72 },
-    { value: 84 },
-    { value: 96 },
-    { value: 108 },
-    { value: 120 },
-    { value: 132 },
-    { value: 144 },
+    { value: 12 }, // 1ft
+    { value: 24 }, // 2ft
+    { value: 36 }, // 3ft
+    { value: 48 }, // 4ft
+    { value: 60 }, // 5ft
+    { value: 72 }, // 6ft
+    { value: 84 }, // 7ft
+    { value: 96 }, // 8ft
+    { value: 108 }, // 9ft
+    { value: 120 }, // 10ft
+    { value: 132 }, // 11ft
+    { value: 144 }, // 12ft
   ];
 
   return (
@@ -45,7 +45,7 @@ export const GridSettings: React.FC<GridSettingsProps> = ({
         Grid Settings
       </Typography>
       <Typography id="grid-size-slider" gutterBottom>
-        Grid Size: {gridSize}in
+        Grid Size: {gridSize > 12 ? `${gridSize / 12}ft` : `${gridSize}in`}
       </Typography>
       <Slider
         value={gridSize}
