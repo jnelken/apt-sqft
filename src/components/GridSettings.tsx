@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Slider } from '@mui/material';
+import { Box, Typography, Slider, Tooltip } from '@mui/material';
 
 interface GridSettingsProps {
   gridSize: number;
@@ -40,13 +40,12 @@ export const GridSettings: React.FC<GridSettingsProps> = ({
   ];
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        Grid Settings
-      </Typography>
-      <Typography id="grid-size-slider" gutterBottom>
-        Grid Size: {gridSize > 12 ? `${gridSize / 12}ft` : `${gridSize}in`}
-      </Typography>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 300 }}>
+      <Tooltip title="Adjust the grid size to change the spacing between grid lines. The grid size is in pixels. You can use fine-grained control (1px) or snap to common measurements (6px, 12px).">
+        <Typography id="grid-size-slider" sx={{ minWidth: 80 }}>
+          Grid: {gridSize > 12 ? `${gridSize / 12}ft` : `${gridSize}in`}
+        </Typography>
+      </Tooltip>
       <Slider
         value={gridSize}
         onChange={handleChange}
@@ -56,12 +55,8 @@ export const GridSettings: React.FC<GridSettingsProps> = ({
         marks={marks}
         min={1}
         max={144}
+        sx={{ flexGrow: 1 }}
       />
-      <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-        Adjust the grid size to change the spacing between grid lines. The grid
-        size is in pixels. You can use fine-grained control (1px) or snap to
-        common measurements (6px, 12px).
-      </Typography>
     </Box>
   );
 };

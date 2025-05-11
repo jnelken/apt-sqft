@@ -4,6 +4,8 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
 import { LayoutEditor } from './components/LayoutEditor';
 import { RoomForm } from './components/RoomForm';
 import { RoomDetails } from './components/RoomDetails';
@@ -139,43 +141,46 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ height: '100vh', display: 'flex' }}>
-        <Box sx={{ flexGrow: 1, position: 'relative' }}>
-          <LayoutEditor
-            rooms={appState.floorPlan.rooms}
-            selectedRoomId={appState.selectedRoomId}
-            onRoomSelect={handleRoomSelect}
-            onRoomMove={handleRoomMove}
-            onRoomResize={handleRoomResize}
-            gridSize={appState.gridSize}
-            zoom={appState.zoom}
-          />
-        </Box>
-        <Box sx={{ width: 300, borderLeft: 1, borderColor: 'divider' }}>
-          <Tabs value={sidebarTab} onChange={handleTabChange}>
-            <Tab label="Add Room" />
-            <Tab label="Room Details" />
-            <Tab label="Grid Settings" />
-          </Tabs>
-          {sidebarTab === 0 && <RoomForm onSubmit={handleAddRoom} />}
-          {sidebarTab === 1 && (
-            <>
-              {selectedRoom ? (
-                <RoomForm
-                  onSubmit={handleUpdateRoom}
-                  initialValues={selectedRoom}
-                />
-              ) : (
-                <RoomDetails room={null} />
-              )}
-            </>
-          )}
-          {sidebarTab === 2 && (
+      <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <AppBar position="static" color="default" elevation={1}>
+          <Toolbar variant="dense">
             <GridSettings
               gridSize={appState.gridSize}
               onGridSizeChange={handleGridSizeChange}
             />
-          )}
+          </Toolbar>
+        </AppBar>
+        <Box sx={{ flexGrow: 1, display: 'flex' }}>
+          <Box sx={{ flexGrow: 1, position: 'relative' }}>
+            <LayoutEditor
+              rooms={appState.floorPlan.rooms}
+              selectedRoomId={appState.selectedRoomId}
+              onRoomSelect={handleRoomSelect}
+              onRoomMove={handleRoomMove}
+              onRoomResize={handleRoomResize}
+              gridSize={appState.gridSize}
+              zoom={appState.zoom}
+            />
+          </Box>
+          <Box sx={{ width: 300, borderLeft: 1, borderColor: 'divider' }}>
+            <Tabs value={sidebarTab} onChange={handleTabChange}>
+              <Tab label="Add Room" />
+              <Tab label="Room Details" />
+            </Tabs>
+            {sidebarTab === 0 && <RoomForm onSubmit={handleAddRoom} />}
+            {sidebarTab === 1 && (
+              <>
+                {selectedRoom ? (
+                  <RoomForm
+                    onSubmit={handleUpdateRoom}
+                    initialValues={selectedRoom}
+                  />
+                ) : (
+                  <RoomDetails room={null} />
+                )}
+              </>
+            )}
+          </Box>
         </Box>
       </Box>
     </ThemeProvider>
