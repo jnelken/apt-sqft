@@ -122,6 +122,10 @@ function App() {
   };
 
   const theme = createTheme({
+    typography: {
+      fontFamily: 'Geist, sans-serif',
+      // fontFeatureSettings: '"rlig", "calt"',
+    },
     palette: {
       mode: appState.theme,
     },

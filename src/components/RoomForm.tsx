@@ -7,7 +7,7 @@ import {
   Typography,
 } from '@mui/material';
 import { Room } from '../types';
-import { CompactTextField } from './CompactTextField';
+import { CompactTextField } from './ui/CompactTextField';
 
 interface RoomFormProps {
   onSubmit: (room: Omit<Room, 'id' | 'points'>) => void;
