@@ -10,6 +10,7 @@ import { LayoutEditor } from './components/LayoutEditor';
 import { RoomForm } from './components/RoomForm';
 import { RoomDetails } from './components/RoomDetails';
 import { GridSettings } from './components/GridSettings';
+import { ImageSettings } from './components/ImageSettings';
 import { AppState, Room } from './types';
 
 const INIT_GRID_SIZE = 12 * 6;
@@ -27,6 +28,8 @@ const initialAppState: AppState = {
   gridSize: INIT_GRID_SIZE,
   zoom: 1,
   theme: 'light',
+  backgroundImage: null,
+  imageScale: 1,
 };
 
 function App() {
@@ -43,6 +46,21 @@ function App() {
 
   const handleGridSizeChange = (newSize: number) => {
     setAppState(prev => ({ ...prev, gridSize: newSize }));
+  };
+
+  const handleImageUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      setAppState(prev => ({
+        ...prev,
+        backgroundImage: e.target?.result as string,
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageScaleChange = (scale: number) => {
+    setAppState(prev => ({ ...prev, imageScale: scale }));
   };
 
   const selectedRoom = appState.floorPlan.rooms.find(
@@ -148,6 +166,12 @@ function App() {
               gridSize={appState.gridSize}
               onGridSizeChange={handleGridSizeChange}
             />
+            <Box sx={{ flexGrow: 1 }} />
+            <ImageSettings
+              onImageUpload={handleImageUpload}
+              imageScale={appState.imageScale}
+              onImageScaleChange={handleImageScaleChange}
+            />
           </Toolbar>
         </AppBar>
         <Box sx={{ flexGrow: 1, display: 'flex' }}>
@@ -160,6 +184,8 @@ function App() {
               onRoomResize={handleRoomResize}
               gridSize={appState.gridSize}
               zoom={appState.zoom}
+              backgroundImage={appState.backgroundImage}
+              imageScale={appState.imageScale}
             />
           </Box>
           <Box sx={{ width: 300, borderLeft: 1, borderColor: 'divider' }}>

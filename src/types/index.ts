@@ -40,4 +40,6 @@ export interface AppState {
   gridSize: number;
   zoom: number;
   theme: 'light' | 'dark';
+  backgroundImage: string | null;
+  imageScale: number;
 }

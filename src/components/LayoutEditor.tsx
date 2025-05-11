@@ -24,6 +24,19 @@ const Grid = styled('div')<{ gridSize: number }>(({ theme, gridSize }) => ({
   backgroundSize: `${gridSize}px ${gridSize}px`,
 }));
 
+const BackgroundImage = styled('div')<{ scale: number }>(({ scale }) => ({
+  position: 'absolute',
+  top: '0%',
+  left: '0%',
+  transform: `scale(${scale})`,
+  backgroundSize: 'contain',
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
+  pointerEvents: 'none',
+  width: '100%',
+  height: '100%',
+}));
+
 const RoomElement = styled('div')<{ isLivable: boolean }>(({ isLivable }) => ({
   'position': 'absolute',
   'border': '2px solid #000',
@@ -42,6 +55,8 @@ interface LayoutEditorProps {
   onRoomResize: (roomId: string, width: number, height: number) => void;
   gridSize: number;
   zoom: number;
+  backgroundImage: string | null;
+  imageScale: number;
 }
 
 export const LayoutEditor: React.FC<LayoutEditorProps> = ({
@@ -52,6 +67,8 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   onRoomResize,
   gridSize,
   zoom,
+  backgroundImage,
+  imageScale,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<Point | null>(null);
@@ -121,6 +138,12 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}>
+      {backgroundImage && (
+        <BackgroundImage
+          scale={imageScale}
+          style={{ backgroundImage: `url(${backgroundImage})` }}
+        />
+      )}
       <Grid gridSize={gridSize} />
       {rooms.map(room => (
         <RoomElement
