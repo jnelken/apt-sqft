@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
@@ -13,11 +13,13 @@ import { GridSettings } from './components/GridSettings';
 import { ImageSettings } from './components/ImageSettings';
 import { ZoomControls } from './components/ZoomControls';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
+import { FloorPlanName } from './components/FloorPlanName';
 import { AppState, Room } from './types';
 
 const INIT_GRID_SIZE = 12;
 
 const initialFloorPlan = {
+  name: 'Untitled Floor Plan',
   rooms: [],
   furniture: [],
   backgroundImage: null,
@@ -34,8 +36,15 @@ const initialAppState: AppState = {
 };
 
 function App() {
-  const [appState, setAppState] = useState<AppState>(initialAppState);
+  const [appState, setAppState] = useState<AppState>(() => {
+    const savedState = localStorage.getItem('currentFloorPlan');
+    return savedState ? JSON.parse(savedState) : initialAppState;
+  });
   const [sidebarTab, setSidebarTab] = useState(0);
+
+  useEffect(() => {
+    localStorage.setItem('currentFloorPlan', JSON.stringify(appState));
+  }, [appState]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSidebarTab(newValue);
@@ -160,6 +169,18 @@ function App() {
     setAppState(prev => ({ ...prev, theme: newTheme }));
   };
 
+  const handleNameChange = (name: string) => {
+    setAppState(prev => ({
+      ...prev,
+      floorPlan: { ...prev.floorPlan, name },
+    }));
+  };
+
+  const handleDelete = () => {
+    localStorage.removeItem('currentFloorPlan');
+    setAppState(initialAppState);
+  };
+
   const theme = createTheme({
     typography: {
       fontFamily: 'Geist, sans-serif',
@@ -179,6 +200,12 @@ function App() {
       <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <AppBar position="static" color="default" elevation={1}>
           <Toolbar variant="dense">
+            <FloorPlanName
+              name={appState.floorPlan.name}
+              onNameChange={handleNameChange}
+              onDelete={handleDelete}
+            />
+            <Box sx={{ width: 16 }} />
             <GridSettings
               gridSize={appState.floorPlan.gridSize}
               onGridSizeChange={handleGridSizeChange}

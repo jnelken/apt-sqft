@@ -28,6 +28,7 @@ export interface Furniture extends Room {
 }
 
 export interface FloorPlan {
+  name: string;
   rooms: Room[];
   furniture: Furniture[];
   backgroundImage: string | null;
