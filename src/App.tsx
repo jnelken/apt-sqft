@@ -20,17 +20,17 @@ const INIT_GRID_SIZE = 12;
 const initialFloorPlan = {
   rooms: [],
   furniture: [],
+  backgroundImage: null,
+  imageScale: 1,
+  gridSize: INIT_GRID_SIZE,
 };
 
 const initialAppState: AppState = {
   floorPlan: initialFloorPlan,
   selectedRoomId: null,
   selectedTool: 'select',
-  gridSize: INIT_GRID_SIZE,
   zoom: 1,
   theme: 'light',
-  backgroundImage: null,
-  imageScale: 1,
 };
 
 function App() {
@@ -46,7 +46,10 @@ function App() {
   };
 
   const handleGridSizeChange = (newSize: number) => {
-    setAppState(prev => ({ ...prev, gridSize: newSize }));
+    setAppState(prev => ({
+      ...prev,
+      floorPlan: { ...prev.floorPlan, gridSize: newSize },
+    }));
   };
 
   const handleImageUpload = (file: File) => {
@@ -54,14 +57,20 @@ function App() {
     reader.onload = e => {
       setAppState(prev => ({
         ...prev,
-        backgroundImage: e.target?.result as string,
+        floorPlan: {
+          ...prev.floorPlan,
+          backgroundImage: e.target?.result as string,
+        },
       }));
     };
     reader.readAsDataURL(file);
   };
 
   const handleImageScaleChange = (scale: number) => {
-    setAppState(prev => ({ ...prev, imageScale: scale }));
+    setAppState(prev => ({
+      ...prev,
+      floorPlan: { ...prev.floorPlan, imageScale: scale },
+    }));
   };
 
   const selectedRoom = appState.floorPlan.rooms.find(
@@ -171,7 +180,7 @@ function App() {
         <AppBar position="static" color="default" elevation={1}>
           <Toolbar variant="dense">
             <GridSettings
-              gridSize={appState.gridSize}
+              gridSize={appState.floorPlan.gridSize}
               onGridSizeChange={handleGridSizeChange}
             />
             <Box sx={{ flexGrow: 1 }} />
@@ -182,7 +191,7 @@ function App() {
             <Box sx={{ width: 16 }} />
             <ImageSettings
               onImageUpload={handleImageUpload}
-              imageScale={appState.imageScale}
+              imageScale={appState.floorPlan.imageScale}
               onImageScaleChange={handleImageScaleChange}
             />
             <Box sx={{ width: 16 }} />
@@ -200,10 +209,10 @@ function App() {
               onRoomSelect={handleRoomSelect}
               onRoomMove={handleRoomMove}
               onRoomResize={handleRoomResize}
-              gridSize={appState.gridSize}
+              gridSize={appState.floorPlan.gridSize}
               zoom={appState.zoom}
-              backgroundImage={appState.backgroundImage}
-              imageScale={appState.imageScale}
+              backgroundImage={appState.floorPlan.backgroundImage}
+              imageScale={appState.floorPlan.imageScale}
             />
           </Box>
           <Box sx={{ width: 300, borderLeft: 1, borderColor: 'divider' }}>

@@ -30,15 +30,15 @@ export interface Furniture extends Room {
 export interface FloorPlan {
   rooms: Room[];
   furniture: Furniture[];
+  backgroundImage: string | null;
+  imageScale: number;
+  gridSize: number;
 }
 
 export interface AppState {
   floorPlan: FloorPlan;
   selectedRoomId: string | null;
   selectedTool: 'select' | 'move' | 'resize' | 'add-point';
-  gridSize: number;
   zoom: number;
   theme: 'light' | 'dark';
-  backgroundImage: string | null;
-  imageScale: number;
 }
