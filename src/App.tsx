@@ -14,12 +14,11 @@ import { ImageSettings } from './components/ImageSettings';
 import { ZoomControls } from './components/ZoomControls';
 import { AppState, Room } from './types';
 
-const INIT_GRID_SIZE = 12 * 6;
+const INIT_GRID_SIZE = 12;
 
 const initialFloorPlan = {
   rooms: [],
   furniture: [],
-  gridSize: INIT_GRID_SIZE,
 };
 
 const initialAppState: AppState = {
@@ -107,15 +106,11 @@ function App() {
     }));
   };
 
-  const handleAddRoom = (roomData: Omit<Room, 'id' | 'points' | 'x' | 'y'>) => {
-    const initialX = window.innerWidth / 4;
-    const initialY = window.innerHeight / 4;
+  const handleAddRoom = (roomData: Omit<Room, 'id' | 'points'>) => {
     const newRoom: Room = {
       ...roomData,
       id: Date.now().toString(),
       points: [],
-      x: initialX,
-      y: initialY,
     };
 
     setAppState(prev => ({

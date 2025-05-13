@@ -30,7 +30,6 @@ export interface Furniture extends Room {
 export interface FloorPlan {
   rooms: Room[];
   furniture: Furniture[];
-  gridSize: number;
 }
 
 export interface AppState {

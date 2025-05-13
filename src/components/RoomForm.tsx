@@ -39,10 +39,16 @@ export const RoomForm: React.FC<RoomFormProps> = ({
     const totalHeight = formData.heightFeet * 12 + formData.heightInches;
     const totalWidth = formData.widthFeet * 12 + formData.widthInches;
     onSubmit({
-      ...formData,
+      name: formData.name,
       height: totalHeight,
       width: totalWidth,
       sqFootage: totalHeight * totalWidth,
+      isLivable: formData.isLivable,
+      isRelative: formData.isRelative,
+      relativeTo: formData.relativeTo,
+      relativeRatio: formData.relativeRatio,
+      x: initialValues?.x || formData.x,
+      y: initialValues?.y || formData.y,
     });
   };
 
