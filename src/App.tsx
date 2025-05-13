@@ -158,6 +158,9 @@ function App() {
     },
     palette: {
       mode: appState.theme,
+      primary: {
+        main: '#2F4F4F', // Slate green color
+      },
     },
   });
 
