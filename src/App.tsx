@@ -6,6 +6,9 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
+import Tooltip from '@mui/material/Tooltip';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
 import { LayoutEditor } from './components/LayoutEditor';
 import { RoomForm } from './components/RoomForm';
 import { RoomDetails } from './components/RoomDetails';
@@ -255,8 +258,12 @@ function App() {
           </Box>
           <Box sx={{ width: 300, borderLeft: 1, borderColor: 'divider' }}>
             <Tabs value={sidebarTab} onChange={handleTabChange}>
-              <Tab label="Add Room" />
-              <Tab label="Room Details" />
+              <Tooltip title="Add Room">
+                <Tab icon={<AddIcon />} aria-label="Add Room" />
+              </Tooltip>
+              <Tooltip title="Room Details">
+                <Tab icon={<EditIcon />} aria-label="Room Details" />
+              </Tooltip>
             </Tabs>
             {sidebarTab === 0 && <RoomForm onSubmit={handleAddRoom} />}
             {sidebarTab === 1 && (
