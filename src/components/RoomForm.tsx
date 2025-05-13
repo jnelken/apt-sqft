@@ -42,7 +42,7 @@ export const RoomForm: React.FC<RoomFormProps> = ({
       name: formData.name,
       height: totalHeight,
       width: totalWidth,
-      sqFootage: totalHeight * totalWidth,
+      sqFootage: (totalHeight * totalWidth) / 144,
       isLivable: formData.isLivable,
       isRelative: formData.isRelative,
       relativeTo: formData.relativeTo,

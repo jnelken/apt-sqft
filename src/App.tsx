@@ -9,6 +9,7 @@ import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
+import InfoIcon from '@mui/icons-material/Info';
 import { LayoutEditor } from './components/LayoutEditor';
 import { RoomForm } from './components/RoomForm';
 import { RoomDetails } from './components/RoomDetails';
@@ -17,6 +18,7 @@ import { ImageSettings } from './components/ImageSettings';
 import { ZoomControls } from './components/ZoomControls';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { FloorPlanName } from './components/FloorPlanName';
+import { FloorPlanDetails } from './components/FloorPlanDetails';
 import { AppState, Room } from './types';
 
 const INIT_GRID_SIZE = 12;
@@ -164,7 +166,7 @@ function App() {
             ? {
                 ...room,
                 ...roomData,
-                sqFootage: roomData.width * roomData.height,
+                sqFootage: (roomData.width * roomData.height) / 144,
               }
             : room,
         ),
@@ -264,6 +266,9 @@ function App() {
               <Tooltip title="Room Details">
                 <Tab icon={<EditIcon />} aria-label="Room Details" />
               </Tooltip>
+              <Tooltip title="Floor Plan Details">
+                <Tab icon={<InfoIcon />} aria-label="Floor Plan Details" />
+              </Tooltip>
             </Tabs>
             {sidebarTab === 0 && <RoomForm onSubmit={handleAddRoom} />}
             {sidebarTab === 1 && (
@@ -277,6 +282,9 @@ function App() {
                   <RoomDetails room={null} />
                 )}
               </>
+            )}
+            {sidebarTab === 2 && (
+              <FloorPlanDetails floorPlan={appState.floorPlan} />
             )}
           </Box>
         </Box>
