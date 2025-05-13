@@ -12,6 +12,7 @@ import { RoomDetails } from './components/RoomDetails';
 import { GridSettings } from './components/GridSettings';
 import { ImageSettings } from './components/ImageSettings';
 import { ZoomControls } from './components/ZoomControls';
+import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { AppState, Room } from './types';
 
 const INIT_GRID_SIZE = 12;
@@ -146,6 +147,10 @@ function App() {
     setAppState(prev => ({ ...prev, zoom: newZoom }));
   };
 
+  const handleThemeChange = (newTheme: 'light' | 'dark') => {
+    setAppState(prev => ({ ...prev, theme: newTheme }));
+  };
+
   const theme = createTheme({
     typography: {
       fontFamily: 'Geist, sans-serif',
@@ -176,6 +181,11 @@ function App() {
               onImageUpload={handleImageUpload}
               imageScale={appState.imageScale}
               onImageScaleChange={handleImageScaleChange}
+            />
+            <Box sx={{ width: 16 }} />
+            <ThemeSwitcher
+              theme={appState.theme}
+              onThemeChange={handleThemeChange}
             />
           </Toolbar>
         </AppBar>

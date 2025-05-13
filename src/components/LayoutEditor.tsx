@@ -2,14 +2,14 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { styled } from '@mui/material/styles';
 import { Point, Room, Wall } from '../types';
 
-const EditorContainer = styled('div')({
+const EditorContainer = styled('div')(({ theme }) => ({
   position: 'relative',
   width: '100%',
   height: '100%',
   overflow: 'hidden',
-  backgroundColor: '#f5f5f5',
+  backgroundColor: theme.palette.background.default,
   fontSize: '1px',
-});
+}));
 
 const EditorContent = styled('div')<{ zoom: number }>(({ zoom }) => ({
   position: 'absolute',
@@ -34,20 +34,24 @@ const Grid = styled('div')<{ gridSize: number }>(({ theme, gridSize }) => ({
   backgroundSize: `${gridSize}px ${gridSize}px`,
 }));
 
-const BackgroundImage = styled('div')<{ scale: number }>(({ scale }) => ({
-  position: 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: `translate(-50%, -50%) scale(${scale})`,
-  backgroundSize: 'contain',
-  backgroundPosition: 'center',
-  backgroundRepeat: 'no-repeat',
-  pointerEvents: 'none',
-  width: '100%',
-  height: '100%',
-  minWidth: '100%',
-  minHeight: '100%',
-}));
+const BackgroundImage = styled('div')<{ scale: number }>(
+  ({ theme, scale }) => ({
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: `translate(-50%, -50%) scale(${scale})`,
+    backgroundSize: 'contain',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    pointerEvents: 'none',
+    width: '100%',
+    height: '100%',
+    minWidth: '100%',
+    minHeight: '100%',
+    filter:
+      theme.palette.mode === 'dark' ? 'invert(1) brightness(0.6)' : 'none',
+  }),
+);
 
 const RoomElement = styled('div')<{ isLivable: boolean }>(({ isLivable }) => ({
   'position': 'absolute',
