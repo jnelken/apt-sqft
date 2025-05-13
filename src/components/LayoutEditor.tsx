@@ -21,18 +21,28 @@ const EditorContent = styled('div')<{ zoom: number }>(({ zoom }) => ({
   height: '100%',
 }));
 
-const Grid = styled('div')<{ gridSize: number }>(({ theme, gridSize }) => ({
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundImage: `
-    linear-gradient(to right, ${theme.palette.primary.main}20 1px, transparent 1px),
-    linear-gradient(to bottom, ${theme.palette.primary.main}20 1px, transparent 1px)
+const Grid = styled('div')<{ gridSize: number; opacity: number }>(
+  ({ theme, gridSize, opacity }) => ({
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundImage: `
+    linear-gradient(to right, ${theme.palette.primary.main}${Math.round(
+      opacity * 255,
+    )
+      .toString(16)
+      .padStart(2, '0')} 1px, transparent 1px),
+    linear-gradient(to bottom, ${theme.palette.primary.main}${Math.round(
+      opacity * 255,
+    )
+      .toString(16)
+      .padStart(2, '0')} 1px, transparent 1px)
   `,
-  backgroundSize: `${gridSize}px ${gridSize}px`,
-}));
+    backgroundSize: `${gridSize}px ${gridSize}px`,
+  }),
+);
 
 const BackgroundImage = styled('div')<{ scale: number }>(
   ({ theme, scale }) => ({
@@ -70,6 +80,7 @@ interface LayoutEditorProps {
   onRoomMove: (roomId: string, x: number, y: number) => void;
   onRoomResize: (roomId: string, width: number, height: number) => void;
   gridSize: number;
+  gridOpacity: number;
   zoom: number;
   backgroundImage: string | null;
   imageScale: number;
@@ -82,6 +93,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   onRoomMove,
   onRoomResize,
   gridSize,
+  gridOpacity,
   zoom,
   backgroundImage,
   imageScale,
@@ -161,7 +173,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
             style={{ backgroundImage: `url(${backgroundImage})` }}
           />
         )}
-        <Grid gridSize={gridSize} />
+        <Grid gridSize={gridSize} opacity={gridOpacity} />
         {rooms.map(room => (
           <RoomElement
             key={room.id}

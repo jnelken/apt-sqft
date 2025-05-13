@@ -25,6 +25,7 @@ const initialFloorPlan = {
   backgroundImage: null,
   imageScale: 1,
   gridSize: INIT_GRID_SIZE,
+  gridOpacity: 0.2,
 };
 
 const initialAppState: AppState = {
@@ -58,6 +59,13 @@ function App() {
     setAppState(prev => ({
       ...prev,
       floorPlan: { ...prev.floorPlan, gridSize: newSize },
+    }));
+  };
+
+  const handleGridOpacityChange = (opacity: number) => {
+    setAppState(prev => ({
+      ...prev,
+      floorPlan: { ...prev.floorPlan, gridOpacity: opacity },
     }));
   };
 
@@ -209,6 +217,8 @@ function App() {
             <GridSettings
               gridSize={appState.floorPlan.gridSize}
               onGridSizeChange={handleGridSizeChange}
+              gridOpacity={appState.floorPlan.gridOpacity}
+              onGridOpacityChange={handleGridOpacityChange}
             />
             <Box sx={{ flexGrow: 1 }} />
             <ZoomControls
@@ -240,6 +250,7 @@ function App() {
               zoom={appState.zoom}
               backgroundImage={appState.floorPlan.backgroundImage}
               imageScale={appState.floorPlan.imageScale}
+              gridOpacity={appState.floorPlan.gridOpacity}
             />
           </Box>
           <Box sx={{ width: 300, borderLeft: 1, borderColor: 'divider' }}>

@@ -34,6 +34,7 @@ export interface FloorPlan {
   backgroundImage: string | null;
   imageScale: number;
   gridSize: number;
+  gridOpacity: number;
 }
 
 export interface AppState {
