@@ -35,6 +35,7 @@ export interface FloorPlan {
   imageScale: number;
   gridSize: number;
   gridOpacity: number;
+  wallColor: string;
 }
 
 export interface AppState {
@@ -43,4 +44,5 @@ export interface AppState {
   selectedTool: 'select' | 'move' | 'resize' | 'add-point';
   zoom: number;
   theme: 'light' | 'dark';
+  highlightColor: string;
 }

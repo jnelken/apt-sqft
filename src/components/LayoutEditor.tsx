@@ -63,13 +63,23 @@ const BackgroundImage = styled('div')<{ scale: number }>(
   }),
 );
 
-const RoomElement = styled('div')<{ isLivable: boolean }>(({ isLivable }) => ({
+const RoomElement = styled('div')<{
+  isLivable: boolean;
+  wallColor: string;
+  isSelected: boolean;
+  highlightColor: string;
+}>(({ isLivable, wallColor, isSelected, highlightColor }) => ({
   'position': 'absolute',
-  'border': '2px solid #000',
-  'backgroundColor': isLivable ? 'transparent' : 'rgba(0, 0, 0, 0.1)',
+  'border': `2px solid ${wallColor}`,
+  'backgroundColor': isSelected
+    ? highlightColor
+    : isLivable
+    ? 'transparent'
+    : 'rgba(0, 0, 0, 0.1)',
   'cursor': 'move',
   '&:hover': {
-    borderColor: '#666',
+    borderColor: wallColor,
+    opacity: 0.8,
   },
 }));
 
@@ -84,6 +94,8 @@ interface LayoutEditorProps {
   zoom: number;
   backgroundImage: string | null;
   imageScale: number;
+  wallColor: string;
+  highlightColor: string;
 }
 
 export const LayoutEditor: React.FC<LayoutEditorProps> = ({
@@ -97,6 +109,8 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   zoom,
   backgroundImage,
   imageScale,
+  wallColor,
+  highlightColor,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<Point | null>(null);
@@ -178,12 +192,15 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
           <RoomElement
             key={room.id}
             isLivable={room.isLivable}
+            wallColor={wallColor}
+            isSelected={selectedRoomId === room.id}
+            highlightColor={highlightColor}
             style={{
               left: `${room.x}em`,
               top: `${room.y}em`,
               width: `${room.width}em`,
               height: `${room.height}em`,
-              borderColor: selectedRoomId === room.id ? '#2196f3' : '#000',
+              borderColor: selectedRoomId === room.id ? '#2196f3' : wallColor,
             }}
             onMouseDown={e => handleMouseDown(e, room.id)}
           />
