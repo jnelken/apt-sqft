@@ -75,9 +75,19 @@ const RoomElement = styled('div')<{
     ? highlightColor
     : isLivable
     ? 'transparent'
-    : 'rgba(0, 0, 0, 0.1)',
+    : 'rgba(0, 0, 0, 0.5)',
+  'backgroundImage':
+    !isLivable && !isSelected
+      ? `repeating-linear-gradient(
+        45deg,
+        rgba(0, 0, 0, 0.5),
+        rgba(0, 0, 0, 0.5) 10px,
+        rgba(0, 0, 0, 0.3) 10px,
+        rgba(0, 0, 0, 0.3) 20px
+      )`
+      : 'none',
   'cursor': 'move',
-  'opacity': 0.5,
+  'opacity': 1,
 
   '&:hover': {
     borderColor: wallColor,

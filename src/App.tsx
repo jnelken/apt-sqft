@@ -41,8 +41,8 @@ const initialAppState: AppState = {
   selectedTool: 'select',
   zoom: 1,
   theme: 'light',
-  highlightColor: '#e3f2fd',
-  wallColor: '#000000',
+  highlightColor: '#377c7c',
+  wallColor: '#377c7c',
   gridSize: INIT_GRID_SIZE,
   gridOpacity: 0.2,
 };
@@ -198,15 +198,29 @@ function App() {
   const handleImageUpload = (file: File) => {
     const reader = new FileReader();
     reader.onload = e => {
+      const newName =
+        appState.floorPlan.name === 'Untitled'
+          ? file.name.replace(/\.[^/.]+$/, '') // Remove file extension
+          : appState.floorPlan.name;
+
+      // Update floor plans object with new name
+      const newFloorPlans = { ...floorPlans };
+      delete newFloorPlans[appState.floorPlan.name];
+      newFloorPlans[newName] = {
+        ...appState.floorPlan,
+        name: newName,
+        backgroundImage: e.target?.result as string,
+      };
+      setFloorPlans(newFloorPlans);
+      setCurrentFloorPlanName(newName);
+
+      // Update app state
       setAppState(prev => ({
         ...prev,
         floorPlan: {
           ...prev.floorPlan,
+          name: newName,
           backgroundImage: e.target?.result as string,
-          name:
-            prev.floorPlan.name === 'Untitled'
-              ? file.name.replace(/\.[^/.]+$/, '')
-              : prev.floorPlan.name,
         },
       }));
     };
