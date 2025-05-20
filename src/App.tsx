@@ -21,8 +21,9 @@ import { ZoomControls } from './components/ZoomControls';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { FloorPlanName } from './components/FloorPlanName';
 import { FloorPlanDetails } from './components/FloorPlanDetails';
-import { AppState, Room } from './types';
+import { AppState, Room, FloorPlan } from './types';
 import { ColorSettings } from './components/ColorSettings';
+import { FloorPlanTabs } from './components/FloorPlanTabs';
 
 const INIT_GRID_SIZE = 12;
 
@@ -47,15 +48,130 @@ const initialAppState: AppState = {
 };
 
 function App() {
+  const [floorPlans, setFloorPlans] = useState<{ [key: string]: FloorPlan }>(
+    () => {
+      const savedFloorPlans = localStorage.getItem('floorPlans');
+      return savedFloorPlans
+        ? JSON.parse(savedFloorPlans)
+        : { Untitled: initialFloorPlan };
+    },
+  );
+
+  const [currentFloorPlanName, setCurrentFloorPlanName] = useState<string>(
+    () => {
+      const savedCurrentName = localStorage.getItem('currentFloorPlanName');
+      return savedCurrentName || 'Untitled';
+    },
+  );
+
   const [appState, setAppState] = useState<AppState>(() => {
-    const savedState = localStorage.getItem('currentFloorPlan');
+    const savedState = localStorage.getItem('appState');
     return savedState ? JSON.parse(savedState) : initialAppState;
   });
+
   const [sidebarTab, setSidebarTab] = useState(0);
 
+  // Save floor plans and current name to localStorage
   useEffect(() => {
-    localStorage.setItem('currentFloorPlan', JSON.stringify(appState));
+    localStorage.setItem('floorPlans', JSON.stringify(floorPlans));
+    localStorage.setItem('currentFloorPlanName', currentFloorPlanName);
+  }, [floorPlans, currentFloorPlanName]);
+
+  // Save app state to localStorage
+  useEffect(() => {
+    localStorage.setItem('appState', JSON.stringify(appState));
   }, [appState]);
+
+  const handleFloorPlanSelect = (name: string) => {
+    // Save current floor plan state
+    setFloorPlans(prev => ({
+      ...prev,
+      [currentFloorPlanName]: appState.floorPlan,
+    }));
+
+    // Load selected floor plan
+    setCurrentFloorPlanName(name);
+    setAppState(prev => ({
+      ...prev,
+      floorPlan: floorPlans[name],
+    }));
+  };
+
+  const handleNameChange = (name: string) => {
+    // If the name is changing, we need to update the floor plans object
+    if (name !== currentFloorPlanName) {
+      const newFloorPlans = { ...floorPlans };
+      // Remove the old name entry
+      delete newFloorPlans[currentFloorPlanName];
+      // Add the new name entry
+      newFloorPlans[name] = { ...appState.floorPlan, name };
+      setFloorPlans(newFloorPlans);
+      setCurrentFloorPlanName(name);
+    }
+
+    setAppState(prev => ({
+      ...prev,
+      floorPlan: { ...prev.floorPlan, name },
+    }));
+  };
+
+  const handleDelete = () => {
+    // Remove the current floor plan
+    const newFloorPlans = { ...floorPlans };
+    delete newFloorPlans[currentFloorPlanName];
+    setFloorPlans(newFloorPlans);
+
+    // Switch to the first available floor plan or create a new one
+    const remainingNames = Object.keys(newFloorPlans);
+    if (remainingNames.length > 0) {
+      setCurrentFloorPlanName(remainingNames[0]);
+      setAppState(prev => ({
+        ...prev,
+        floorPlan: newFloorPlans[remainingNames[0]],
+      }));
+    } else {
+      setCurrentFloorPlanName('Untitled');
+      setAppState(prev => ({
+        ...prev,
+        floorPlan: initialFloorPlan,
+      }));
+    }
+  };
+
+  const handleNewFloorPlan = () => {
+    // Generate a unique name for the new floor plan
+    const baseName = 'Untitled';
+    let newName = baseName;
+    let counter = 1;
+    while (floorPlans[newName]) {
+      newName = `${baseName} ${counter}`;
+      counter++;
+    }
+
+    // Save current floor plan state
+    setFloorPlans(prev => ({
+      ...prev,
+      [currentFloorPlanName]: appState.floorPlan,
+    }));
+
+    // Create new floor plan
+    const newFloorPlan = {
+      ...initialFloorPlan,
+      name: newName,
+    };
+
+    setFloorPlans(prev => ({
+      ...prev,
+      [newName]: newFloorPlan,
+    }));
+
+    // Switch to the new floor plan
+    setCurrentFloorPlanName(newName);
+    setAppState(prev => ({
+      ...prev,
+      floorPlan: newFloorPlan,
+    }));
+  };
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSidebarTab(newValue);
@@ -233,18 +349,6 @@ function App() {
     setAppState(prev => ({ ...prev, theme: newTheme }));
   };
 
-  const handleNameChange = (name: string) => {
-    setAppState(prev => ({
-      ...prev,
-      floorPlan: { ...prev.floorPlan, name },
-    }));
-  };
-
-  const handleDelete = () => {
-    localStorage.removeItem('currentFloorPlan');
-    setAppState(initialAppState);
-  };
-
   const handleWallColorChange = (color: string) => {
     setAppState(prev => ({
       ...prev,
@@ -273,6 +377,12 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <FloorPlanTabs
+          floorPlans={floorPlans}
+          currentFloorPlanName={currentFloorPlanName}
+          onFloorPlanSelect={handleFloorPlanSelect}
+          onNewFloorPlan={handleNewFloorPlan}
+        />
         <AppBar position="static" color="default" elevation={1}>
           <Toolbar variant="dense">
             <FloorPlanName
