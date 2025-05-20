@@ -27,7 +27,7 @@ import { ColorSettings } from './components/ColorSettings';
 const INIT_GRID_SIZE = 12;
 
 const initialFloorPlan = {
-  name: 'Untitled Floor Plan',
+  name: 'Untitled',
   rooms: [],
   furniture: [],
   backgroundImage: null,
@@ -87,6 +87,10 @@ function App() {
         floorPlan: {
           ...prev.floorPlan,
           backgroundImage: e.target?.result as string,
+          name:
+            prev.floorPlan.name === 'Untitled'
+              ? file.name.replace(/\.[^/.]+$/, '')
+              : prev.floorPlan.name,
         },
       }));
     };
