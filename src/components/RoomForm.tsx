@@ -6,17 +6,23 @@ import {
   Switch,
   Typography,
 } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { Room } from '../types';
 import { CompactTextField } from './ui/CompactTextField';
 
 interface RoomFormProps {
   onSubmit: (room: Omit<Room, 'id' | 'points'>) => void;
   initialValues?: Partial<Room>;
+  onDelete?: () => void;
+  onDuplicate?: () => void;
 }
 
 export const RoomForm: React.FC<RoomFormProps> = ({
   onSubmit,
   initialValues,
+  onDelete,
+  onDuplicate,
 }) => {
   const letter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
 
@@ -192,6 +198,35 @@ export const RoomForm: React.FC<RoomFormProps> = ({
         sx={{ mt: 2 }}>
         {initialValues ? 'Update Room' : 'Add Room'}
       </Button>
+
+      {initialValues && (onDelete || onDuplicate) && (
+        <Box
+          sx={{
+            mt: 'auto',
+            pt: 2,
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 1,
+          }}>
+          {onDuplicate && (
+            <Button
+              variant="outlined"
+              startIcon={<ContentCopyIcon />}
+              onClick={onDuplicate}>
+              Duplicate
+            </Button>
+          )}
+          {onDelete && (
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={onDelete}>
+              Delete
+            </Button>
+          )}
+        </Box>
+      )}
     </Box>
   );
 };

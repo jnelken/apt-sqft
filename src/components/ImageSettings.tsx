@@ -48,7 +48,7 @@ export const ImageSettings: React.FC<ImageSettingsProps> = ({
             onChange={(_event, value) => onImageScaleChange(value as number)}
             min={0.1}
             max={2}
-            step={0.1}
+            step={0.01}
             size="small"
             sx={{ flexGrow: 1 }}
           />

@@ -14,7 +14,7 @@ export const GridSettings: React.FC<GridSettingsProps> = ({
   gridOpacity,
   onGridOpacityChange,
 }) => {
-  const handleChange = (_event: Event, newValue: number | number[]) => {
+  const handleChange = (newValue: number | number[]) => {
     const value = newValue as number;
     if (value < 6) {
       onGridSizeChange(1);
@@ -43,21 +43,27 @@ export const GridSettings: React.FC<GridSettingsProps> = ({
     { value: 144 }, // 12ft
   ];
 
+  const gridSizeLabel = gridSize > 12 ? `${gridSize % 12}ft` : `${gridSize}in`;
+
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 300 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Tooltip title="Adjust the grid size to change the spacing between grid lines">
-          <Typography id="grid-size-slider" sx={{ minWidth: 100 }}>
-            Grid: {gridSize > 12 ? `${gridSize / 12}ft` : `${gridSize}in`}
+          <Typography
+            id="grid-size-slider"
+            sx={{ width: 100, overflow: 'hidden' }}>
+            Grid:{' '}
+            {gridSize > 12 ? `${Math.round(gridSize / 12)}ft` : `${gridSize}in`}
           </Typography>
         </Tooltip>
         <Slider
           value={gridSize}
-          onChange={(_event, value) => onGridSizeChange(value as number)}
+          onChange={(_event, value) => handleChange(value as number)}
           aria-labelledby="grid-size-slider"
           valueLabelDisplay="auto"
           step={1}
           min={1}
+          marks={marks}
           max={144}
           sx={{ width: 120 }}
         />

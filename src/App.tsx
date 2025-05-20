@@ -32,9 +32,6 @@ const initialFloorPlan = {
   furniture: [],
   backgroundImage: null,
   imageScale: 1,
-  gridSize: INIT_GRID_SIZE,
-  gridOpacity: 0.2,
-  wallColor: '#000000',
 };
 
 const initialAppState: AppState = {
@@ -44,6 +41,9 @@ const initialAppState: AppState = {
   zoom: 1,
   theme: 'light',
   highlightColor: '#e3f2fd',
+  wallColor: '#000000',
+  gridSize: INIT_GRID_SIZE,
+  gridOpacity: 0.2,
 };
 
 function App() {
@@ -68,14 +68,14 @@ function App() {
   const handleGridSizeChange = (newSize: number) => {
     setAppState(prev => ({
       ...prev,
-      floorPlan: { ...prev.floorPlan, gridSize: newSize },
+      gridSize: newSize,
     }));
   };
 
   const handleGridOpacityChange = (opacity: number) => {
     setAppState(prev => ({
       ...prev,
-      floorPlan: { ...prev.floorPlan, gridOpacity: opacity },
+      gridOpacity: opacity,
     }));
   };
 
@@ -179,6 +179,48 @@ function App() {
     }));
   };
 
+  const handleDeleteRoom = () => {
+    if (!appState.selectedRoomId) return;
+
+    setAppState(prev => ({
+      ...prev,
+      floorPlan: {
+        ...prev.floorPlan,
+        rooms: prev.floorPlan.rooms.filter(
+          room => room.id !== appState.selectedRoomId,
+        ),
+      },
+      selectedRoomId: null,
+    }));
+    setSidebarTab(0); // Switch to Add Room tab after deletion
+  };
+
+  const handleDuplicateRoom = () => {
+    if (!appState.selectedRoomId) return;
+    const roomToClone = appState.floorPlan.rooms.find(
+      room => room.id === appState.selectedRoomId,
+    );
+    if (!roomToClone) return;
+
+    const newRoom: Room = {
+      ...roomToClone,
+      id: Date.now().toString(),
+      name: `${roomToClone.name} (Copy)`,
+      x: roomToClone.x + 50,
+      y: roomToClone.y + 50,
+      points: [],
+    };
+
+    setAppState(prev => ({
+      ...prev,
+      floorPlan: {
+        ...prev.floorPlan,
+        rooms: [...prev.floorPlan.rooms, newRoom],
+      },
+      selectedRoomId: newRoom.id,
+    }));
+  };
+
   const handleZoomChange = (newZoom: number) => {
     setAppState(prev => ({ ...prev, zoom: newZoom }));
   };
@@ -202,7 +244,7 @@ function App() {
   const handleWallColorChange = (color: string) => {
     setAppState(prev => ({
       ...prev,
-      floorPlan: { ...prev.floorPlan, wallColor: color },
+      wallColor: color,
     }));
   };
 
@@ -236,9 +278,9 @@ function App() {
             />
             <Box sx={{ width: 16 }} />
             <GridSettings
-              gridSize={appState.floorPlan.gridSize}
+              gridSize={appState.gridSize}
               onGridSizeChange={handleGridSizeChange}
-              gridOpacity={appState.floorPlan.gridOpacity}
+              gridOpacity={appState.gridOpacity}
               onGridOpacityChange={handleGridOpacityChange}
             />
             <Box sx={{ flexGrow: 1 }} />
@@ -262,7 +304,7 @@ function App() {
         <Box sx={{ flexGrow: 1, display: 'flex' }}>
           <Box sx={{ width: 300, borderRight: 1, borderColor: 'divider' }}>
             <ColorSettings
-              wallColor={appState.floorPlan.wallColor}
+              wallColor={appState.wallColor}
               onWallColorChange={handleWallColorChange}
               selectedRoomId={appState.selectedRoomId}
               highlightColor={appState.highlightColor}
@@ -276,12 +318,12 @@ function App() {
               onRoomSelect={handleRoomSelect}
               onRoomMove={handleRoomMove}
               onRoomResize={handleRoomResize}
-              gridSize={appState.floorPlan.gridSize}
+              gridSize={appState.gridSize}
               zoom={appState.zoom}
               backgroundImage={appState.floorPlan.backgroundImage}
               imageScale={appState.floorPlan.imageScale}
-              gridOpacity={appState.floorPlan.gridOpacity}
-              wallColor={appState.floorPlan.wallColor}
+              gridOpacity={appState.gridOpacity}
+              wallColor={appState.wallColor}
               highlightColor={appState.highlightColor}
             />
           </Box>
@@ -307,6 +349,8 @@ function App() {
                   <RoomForm
                     onSubmit={handleUpdateRoom}
                     initialValues={selectedRoom}
+                    onDelete={handleDeleteRoom}
+                    onDuplicate={handleDuplicateRoom}
                   />
                 ) : (
                   <RoomDetails room={null} />

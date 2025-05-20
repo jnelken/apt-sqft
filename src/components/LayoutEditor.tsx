@@ -77,6 +77,8 @@ const RoomElement = styled('div')<{
     ? 'transparent'
     : 'rgba(0, 0, 0, 0.1)',
   'cursor': 'move',
+  'opacity': 0.5,
+
   '&:hover': {
     borderColor: wallColor,
     opacity: 0.8,

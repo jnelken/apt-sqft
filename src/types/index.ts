@@ -33,9 +33,6 @@ export interface FloorPlan {
   furniture: Furniture[];
   backgroundImage: string | null;
   imageScale: number;
-  gridSize: number;
-  gridOpacity: number;
-  wallColor: string;
 }
 
 export interface AppState {
@@ -45,4 +42,7 @@ export interface AppState {
   zoom: number;
   theme: 'light' | 'dark';
   highlightColor: string;
+  wallColor: string;
+  gridSize: number;
+  gridOpacity: number;
 }
