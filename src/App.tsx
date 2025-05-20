@@ -11,6 +11,9 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import InfoIcon from '@mui/icons-material/Info';
 import ListIcon from '@mui/icons-material/List';
+import IconButton from '@mui/material/IconButton';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { LayoutEditor } from './components/LayoutEditor';
 import { RoomForm } from './components/RoomForm';
 import { RoomDetails } from './components/RoomDetails';
@@ -70,6 +73,7 @@ function App() {
   });
 
   const [sidebarTab, setSidebarTab] = useState(0);
+  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
 
   // Save floor plans and current name to localStorage
   useEffect(() => {
@@ -430,7 +434,15 @@ function App() {
           </Toolbar>
         </AppBar>
         <Box sx={{ flexGrow: 1, display: 'flex' }}>
-          <Box sx={{ width: 300, borderRight: 1, borderColor: 'divider' }}>
+          <Box
+            sx={{
+              width: isLeftPanelOpen ? 300 : 0,
+              borderRight: 1,
+              borderColor: 'divider',
+              transition: 'width 0.2s',
+              overflow: 'hidden',
+              position: 'relative',
+            }}>
             <ColorSettings
               wallColor={appState.wallColor}
               onWallColorChange={handleWallColorChange}
@@ -438,6 +450,22 @@ function App() {
               highlightColor={appState.highlightColor}
               onHighlightColorChange={handleHighlightColorChange}
             />
+            <IconButton
+              onClick={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
+              sx={{
+                'position': 'absolute',
+                'right': -20,
+                'top': '50%',
+                'transform': 'translateY(-50%)',
+                'backgroundColor': 'background.paper',
+                'border': 1,
+                'borderColor': 'divider',
+                '&:hover': {
+                  backgroundColor: 'action.hover',
+                },
+              }}>
+              {isLeftPanelOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+            </IconButton>
           </Box>
           <Box sx={{ flexGrow: 1, position: 'relative' }}>
             <LayoutEditor
