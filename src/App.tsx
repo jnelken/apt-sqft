@@ -274,7 +274,12 @@ function App() {
         ...prev.floorPlan,
         rooms: prev.floorPlan.rooms.map(room =>
           room.id === roomId
-            ? { ...room, width, height, sqFootage: width * height }
+            ? {
+                ...room,
+                width,
+                height,
+                sqFootage: (width * height) / 144, // Convert square inches to square feet
+              }
             : room,
         ),
       },

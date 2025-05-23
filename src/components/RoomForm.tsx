@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
   FormControlLabel,
   Switch,
   Typography,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -32,13 +34,31 @@ export const RoomForm: React.FC<RoomFormProps> = ({
     heightInches: (initialValues?.height || 120) % 12,
     widthFeet: Math.floor((initialValues?.width || 240) / 12),
     widthInches: (initialValues?.width || 240) % 12,
-    isLivable: initialValues?.isLivable ?? true,
+    roomType: initialValues?.roomType || 'livable',
     isRelative: initialValues?.isRelative ?? false,
     relativeTo: initialValues?.relativeTo || '',
     relativeRatio: initialValues?.relativeRatio || 1,
     x: initialValues?.x || window.innerWidth / 2,
     y: initialValues?.y || window.innerHeight / 2,
   });
+
+  // Update form data when initialValues change
+  useEffect(() => {
+    if (
+      initialValues?.height !== undefined &&
+      initialValues?.width !== undefined
+    ) {
+      const height = initialValues.height!;
+      const width = initialValues.width!;
+      setFormData(prev => ({
+        ...prev,
+        heightFeet: Math.floor(height / 12),
+        heightInches: height % 12,
+        widthFeet: Math.floor(width / 12),
+        widthInches: width % 12,
+      }));
+    }
+  }, [initialValues?.height, initialValues?.width]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +69,7 @@ export const RoomForm: React.FC<RoomFormProps> = ({
       height: totalHeight,
       width: totalWidth,
       sqFootage: (totalHeight * totalWidth) / 144,
-      isLivable: formData.isLivable,
+      roomType: formData.roomType,
       isRelative: formData.isRelative,
       relativeTo: formData.relativeTo,
       relativeRatio: formData.relativeRatio,
@@ -140,17 +160,21 @@ export const RoomForm: React.FC<RoomFormProps> = ({
         </Typography>
       )}
 
-      <FormControlLabel
-        control={
-          <Switch
-            checked={formData.isLivable}
-            onChange={e =>
-              setFormData(prev => ({ ...prev, isLivable: e.target.checked }))
-            }
-          />
+      <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
+        Room Type
+      </Typography>
+      <ToggleButtonGroup
+        value={formData.roomType}
+        exclusive
+        onChange={(e, value) =>
+          value && setFormData(prev => ({ ...prev, roomType: value }))
         }
-        label="Livable Space"
-      />
+        fullWidth
+        sx={{ mb: 2 }}>
+        <ToggleButton value="livable">Livable</ToggleButton>
+        <ToggleButton value="non-livable">Non-Livable</ToggleButton>
+        <ToggleButton value="outdoor">Outdoor</ToggleButton>
+      </ToggleButtonGroup>
 
       <FormControlLabel
         control={

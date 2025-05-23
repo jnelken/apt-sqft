@@ -37,7 +37,8 @@ export const RoomDetails: React.FC<RoomDetailsProps> = ({ room }) => {
           <strong>Position:</strong> ({room.x}, {room.y})
         </Typography>
         <Typography variant="body1">
-          <strong>Livable Space:</strong> {room.isLivable ? 'Yes' : 'No'}
+          <strong>Room Type:</strong>{' '}
+          {room.roomType.charAt(0).toUpperCase() + room.roomType.slice(1)}
         </Typography>
       </Paper>
     </Box>

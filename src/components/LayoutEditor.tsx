@@ -95,6 +95,35 @@ const RoomElement = styled('div')<{
   },
 }));
 
+const ResizeHandle = styled('div')<{ position: string }>(({ position }) => ({
+  position: 'absolute',
+  width: '10px',
+  height: '10px',
+  backgroundColor: '#2196f3',
+  borderRadius: '50%',
+  cursor: position.includes('e') ? 'ew-resize' : 'ns-resize',
+  ...(position === 'e' && {
+    right: '-5px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+  }),
+  ...(position === 'w' && {
+    left: '-5px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+  }),
+  ...(position === 'n' && {
+    top: '-5px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+  }),
+  ...(position === 's' && {
+    bottom: '-5px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+  }),
+}));
+
 interface LayoutEditorProps {
   rooms: Room[];
   selectedRoomId: string | null;
@@ -126,6 +155,8 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeWall, setResizeWall] = useState<string | null>(null);
   const [dragStart, setDragStart] = useState<Point | null>(null);
   const [viewportOffset, setViewportOffset] = useState<Point>({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -158,6 +189,17 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
     }
   }, []);
 
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent, roomId: string, wall: string) => {
+      e.stopPropagation();
+      setIsResizing(true);
+      setResizeWall(wall);
+      setDragStart({ x: e.clientX, y: e.clientY });
+      onRoomSelect(roomId);
+    },
+    [onRoomSelect],
+  );
+
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
       if (!dragStart) return;
@@ -182,24 +224,109 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
 
         onRoomMove(selectedRoomId, newX, newY);
         setDragStart({ x: e.clientX, y: e.clientY });
+      } else if (isResizing && selectedRoomId && resizeWall) {
+        const selectedRoom = rooms.find(room => room.id === selectedRoomId);
+        if (!selectedRoom) return;
+
+        const dx = (e.clientX - dragStart.x) / zoom;
+        const dy = (e.clientY - dragStart.y) / zoom;
+
+        let newWidth = selectedRoom.width;
+        let newHeight = selectedRoom.height;
+        let newX = selectedRoom.x;
+        let newY = selectedRoom.y;
+
+        switch (resizeWall) {
+          case 'e':
+            newWidth = Math.max(gridSize, selectedRoom.width + dx);
+            break;
+          case 'w':
+            newWidth = Math.max(gridSize, selectedRoom.width - dx);
+            newX = selectedRoom.x + dx;
+            break;
+          case 's':
+            newHeight = Math.max(gridSize, selectedRoom.height + dy);
+            break;
+          case 'n':
+            newHeight = Math.max(gridSize, selectedRoom.height - dy);
+            newY = selectedRoom.y + dy;
+            break;
+        }
+
+        // Update room dimensions immediately
+        onRoomResize(selectedRoomId, newWidth, newHeight);
+        if (newX !== selectedRoom.x || newY !== selectedRoom.y) {
+          onRoomMove(selectedRoomId, newX, newY);
+        }
+        setDragStart({ x: e.clientX, y: e.clientY });
       }
     },
-    [isPanning, isDragging, dragStart, selectedRoomId, onRoomMove, rooms],
+    [
+      isPanning,
+      isDragging,
+      isResizing,
+      dragStart,
+      selectedRoomId,
+      resizeWall,
+      onRoomMove,
+      onRoomResize,
+      rooms,
+      gridSize,
+      zoom,
+    ],
   );
 
   const handleMouseUp = useCallback(() => {
-    if (selectedRoomId && isDragging) {
-      const selectedRoom = rooms.find(room => room.id === selectedRoomId);
-      if (selectedRoom) {
-        const snappedX = snapToGrid(selectedRoom.x);
-        const snappedY = snapToGrid(selectedRoom.y);
-        onRoomMove(selectedRoomId, snappedX, snappedY);
+    if (selectedRoomId) {
+      if (isDragging) {
+        const selectedRoom = rooms.find(room => room.id === selectedRoomId);
+        if (selectedRoom) {
+          const snappedX = snapToGrid(selectedRoom.x);
+          const snappedY = snapToGrid(selectedRoom.y);
+          onRoomMove(selectedRoomId, snappedX, snappedY);
+        }
+      } else if (isResizing) {
+        const selectedRoom = rooms.find(room => room.id === selectedRoomId);
+        if (selectedRoom) {
+          // Snap dimensions to grid
+          const snappedWidth = snapToGrid(selectedRoom.width);
+          const snappedHeight = snapToGrid(selectedRoom.height);
+          let snappedX = selectedRoom.x;
+          let snappedY = selectedRoom.y;
+
+          // Adjust position for west and north walls after snapping
+          if (resizeWall === 'w') {
+            const widthDiff = snappedWidth - selectedRoom.width;
+            snappedX = selectedRoom.x + widthDiff;
+          }
+          if (resizeWall === 'n') {
+            const heightDiff = snappedHeight - selectedRoom.height;
+            snappedY = selectedRoom.y + heightDiff;
+          }
+
+          // Update final dimensions and position
+          onRoomResize(selectedRoomId, snappedWidth, snappedHeight);
+          if (snappedX !== selectedRoom.x || snappedY !== selectedRoom.y) {
+            onRoomMove(selectedRoomId, snappedX, snappedY);
+          }
+        }
       }
     }
     setIsDragging(false);
     setIsPanning(false);
+    setIsResizing(false);
+    setResizeWall(null);
     setDragStart(null);
-  }, [selectedRoomId, rooms, snapToGrid, onRoomMove, isDragging]);
+  }, [
+    selectedRoomId,
+    rooms,
+    snapToGrid,
+    onRoomMove,
+    onRoomResize,
+    isDragging,
+    isResizing,
+    resizeWall,
+  ]);
 
   // Prevent context menu on right click
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
@@ -251,8 +378,28 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
               height: `${room.height}em`,
               borderColor: selectedRoomId === room.id ? '#2196f3' : wallColor,
             }}
-            onMouseDown={e => handleMouseDown(e, room.id)}
-          />
+            onMouseDown={e => handleMouseDown(e, room.id)}>
+            {selectedRoomId === room.id && (
+              <>
+                <ResizeHandle
+                  position="e"
+                  onMouseDown={e => handleResizeStart(e, room.id, 'e')}
+                />
+                <ResizeHandle
+                  position="w"
+                  onMouseDown={e => handleResizeStart(e, room.id, 'w')}
+                />
+                <ResizeHandle
+                  position="n"
+                  onMouseDown={e => handleResizeStart(e, room.id, 'n')}
+                />
+                <ResizeHandle
+                  position="s"
+                  onMouseDown={e => handleResizeStart(e, room.id, 's')}
+                />
+              </>
+            )}
+          </RoomElement>
         ))}
       </EditorContent>
     </EditorContainer>

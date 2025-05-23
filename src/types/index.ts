@@ -14,7 +14,7 @@ export interface Room {
   height: number;
   width: number;
   sqFootage: number;
-  isLivable: boolean;
+  roomType: 'livable' | 'non-livable' | 'outdoor';
   points: Point[];
   x: number;
   y: number;
