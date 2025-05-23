@@ -282,10 +282,23 @@ function App() {
   };
 
   const handleAddRoom = (roomData: Omit<Room, 'id' | 'points'>) => {
+    // Get the editor container dimensions
+    const editorContainer = document.querySelector(
+      '.LayoutEditor',
+    ) as HTMLElement;
+    const editorWidth = editorContainer?.offsetWidth;
+    const editorHeight = editorContainer?.offsetHeight;
+
+    // Calculate center position by adding half the editor dimensions
+    const centeredX = editorWidth / 2 - roomData.width / 2;
+    const centeredY = editorHeight / 2 - roomData.height / 2;
+
     const newRoom: Room = {
       ...roomData,
       id: Date.now().toString(),
       points: [],
+      x: centeredX,
+      y: centeredY,
     };
 
     setAppState(prev => ({

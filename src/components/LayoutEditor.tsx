@@ -219,6 +219,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
 
   return (
     <EditorContainer
+      className="LayoutEditor"
       ref={containerRef}
       onMouseDown={handleContainerMouseDown}
       onMouseMove={handleMouseMove}
