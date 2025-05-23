@@ -435,6 +435,14 @@ function App() {
               gridOpacity={appState.gridOpacity}
               onGridOpacityChange={handleGridOpacityChange}
             />
+            <Box sx={{ width: 16 }} />
+            <ColorSettings
+              wallColor={appState.wallColor}
+              onWallColorChange={handleWallColorChange}
+              selectedRoomId={appState.selectedRoomId}
+              highlightColor={appState.highlightColor}
+              onHighlightColorChange={handleHighlightColorChange}
+            />
             <Box sx={{ flexGrow: 1 }} />
             <ZoomControls
               zoom={appState.zoom}
@@ -463,13 +471,6 @@ function App() {
               overflow: 'hidden',
               position: 'relative',
             }}>
-            <ColorSettings
-              wallColor={appState.wallColor}
-              onWallColorChange={handleWallColorChange}
-              selectedRoomId={appState.selectedRoomId}
-              highlightColor={appState.highlightColor}
-              onHighlightColorChange={handleHighlightColorChange}
-            />
             <IconButton
               onClick={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
               sx={{

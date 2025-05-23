@@ -1,5 +1,7 @@
-import React from 'react';
-import { Box, Typography, TextField } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, IconButton, Popover } from '@mui/material';
+import { HexColorPicker } from 'react-colorful';
+import ColorLensIcon from '@mui/icons-material/ColorLens';
 
 interface ColorSettingsProps {
   wallColor: string;
@@ -16,44 +18,56 @@ export const ColorSettings: React.FC<ColorSettingsProps> = ({
   highlightColor,
   onHighlightColorChange,
 }) => {
-  return (
-    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Typography variant="subtitle2">Wall Color</Typography>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <input
-          type="color"
-          value={wallColor}
-          onChange={e => onWallColorChange(e.target.value)}
-          style={{ width: 40, height: 40, padding: 0, border: 'none' }}
-        />
-        <TextField
-          size="small"
-          value={wallColor}
-          onChange={e => onWallColorChange(e.target.value)}
-          sx={{ flexGrow: 1 }}
-        />
-      </Box>
+  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
 
-      <Typography variant="subtitle2">Highlight Color</Typography>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <input
-          type="color"
-          value={highlightColor}
-          onChange={e => onHighlightColorChange(e.target.value)}
-          style={{ width: 40, height: 40, padding: 0, border: 'none' }}
-        />
-        <TextField
-          size="small"
-          value={highlightColor}
-          onChange={e => onHighlightColorChange(e.target.value)}
-          sx={{ flexGrow: 1 }}
-        />
-      </Box>
-      {!selectedRoomId && (
-        <Typography variant="caption" color="text.secondary">
-          Select a room to highlight it
-        </Typography>
-      )}
-    </Box>
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleColorChange = (color: string) => {
+    onWallColorChange(color);
+    onHighlightColorChange(color);
+  };
+
+  const open = Boolean(anchorEl);
+
+  return (
+    <>
+      <IconButton
+        onClick={handleClick}
+        sx={{
+          'width': 32,
+          'height': 32,
+          'backgroundColor': wallColor,
+          'border': '1px solid',
+          'borderColor': 'divider',
+          '&:hover': {
+            backgroundColor: wallColor,
+            opacity: 0.8,
+          },
+        }}>
+        <ColorLensIcon sx={{ color: 'white', opacity: 0.5 }} />
+      </IconButton>
+      <Popover
+        open={open}
+        anchorEl={anchorEl}
+        onClose={handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'left',
+        }}>
+        <Box sx={{ p: 2 }}>
+          <HexColorPicker color={wallColor} onChange={handleColorChange} />
+        </Box>
+      </Popover>
+    </>
   );
 };

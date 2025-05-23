@@ -87,11 +87,11 @@ const RoomElement = styled('div')<{
       )`
       : 'none',
   'cursor': 'move',
-  'opacity': 1,
+  'opacity': 0.5,
 
   '&:hover': {
     borderColor: wallColor,
-    opacity: 0.8,
+    opacity: 0.6,
   },
 }));
 
