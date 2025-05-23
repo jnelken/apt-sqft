@@ -44,21 +44,23 @@ export const RoomForm: React.FC<RoomFormProps> = ({
 
   // Update form data when initialValues change
   useEffect(() => {
-    if (
-      initialValues?.height !== undefined &&
-      initialValues?.width !== undefined
-    ) {
-      const height = initialValues.height!;
-      const width = initialValues.width!;
+    if (initialValues) {
       setFormData(prev => ({
         ...prev,
-        heightFeet: Math.floor(height / 12),
-        heightInches: height % 12,
-        widthFeet: Math.floor(width / 12),
-        widthInches: width % 12,
+        name: initialValues.name || prev.name,
+        heightFeet: Math.floor((initialValues.height || 0) / 12),
+        heightInches: (initialValues.height || 0) % 12,
+        widthFeet: Math.floor((initialValues.width || 0) / 12),
+        widthInches: (initialValues.width || 0) % 12,
+        roomType: initialValues.roomType || 'livable',
+        isRelative: initialValues.isRelative ?? false,
+        relativeTo: initialValues.relativeTo || '',
+        relativeRatio: initialValues.relativeRatio || 1,
+        x: initialValues.x || prev.x,
+        y: initialValues.y || prev.y,
       }));
     }
-  }, [initialValues?.height, initialValues?.width]);
+  }, [initialValues]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

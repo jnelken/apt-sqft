@@ -27,6 +27,7 @@ import { FloorPlanDetails } from './components/FloorPlanDetails';
 import { AppState, Room, FloorPlan } from './types';
 import { ColorSettings } from './components/ColorSettings';
 import { FloorPlanTabs } from './components/FloorPlanTabs';
+import { Typography } from '@mui/material';
 
 const INIT_GRID_SIZE = 12;
 
@@ -520,12 +521,40 @@ function App() {
             {sidebarTab === 1 && (
               <>
                 {selectedRoom ? (
-                  <RoomForm
-                    onSubmit={handleUpdateRoom}
-                    initialValues={selectedRoom}
-                    onDelete={handleDeleteRoom}
-                    onDuplicate={handleDuplicateRoom}
-                  />
+                  appState.selectedTool === 'edit' ? (
+                    <Box>
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <IconButton
+                          onClick={() =>
+                            setAppState(prev => ({
+                              ...prev,
+                              selectedTool: 'select',
+                            }))
+                          }
+                          sx={{ mr: 1 }}>
+                          <ChevronLeftIcon />
+                        </IconButton>
+                        <Typography variant="h6">Edit Room</Typography>
+                      </Box>
+                      <RoomForm
+                        onSubmit={handleUpdateRoom}
+                        initialValues={selectedRoom}
+                        onDelete={handleDeleteRoom}
+                        onDuplicate={handleDuplicateRoom}
+                      />
+                    </Box>
+                  ) : (
+                    <RoomDetails
+                      room={selectedRoom}
+                      onEdit={() => {
+                        setAppState(prev => ({
+                          ...prev,
+                          selectedTool: 'edit',
+                        }));
+                      }}
+                    />
+                  )
                 ) : (
                   <RoomDetails room={null} />
                 )}

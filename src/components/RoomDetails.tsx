@@ -1,12 +1,14 @@
 import React from 'react';
-import { Box, Typography, Paper } from '@mui/material';
+import { Box, Typography, Paper, Button } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
 import { Room } from '../types';
 
 interface RoomDetailsProps {
   room: Room | null;
+  onEdit?: () => void;
 }
 
-export const RoomDetails: React.FC<RoomDetailsProps> = ({ room }) => {
+export const RoomDetails: React.FC<RoomDetailsProps> = ({ room, onEdit }) => {
   if (!room) {
     return (
       <Box sx={{ p: 2 }}>
@@ -17,9 +19,20 @@ export const RoomDetails: React.FC<RoomDetailsProps> = ({ room }) => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        Room Details
-      </Typography>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}>
+        <Typography variant="h6">Room Details</Typography>
+        {onEdit && (
+          <Button variant="outlined" startIcon={<EditIcon />} onClick={onEdit}>
+            Edit Room
+          </Button>
+        )}
+      </Box>
       <Paper sx={{ p: 2 }}>
         <Typography variant="body1">
           <strong>Name:</strong> {room.name}

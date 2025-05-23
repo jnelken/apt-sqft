@@ -38,7 +38,7 @@ export interface FloorPlan {
 export interface AppState {
   floorPlan: FloorPlan;
   selectedRoomId: string | null;
-  selectedTool: 'select' | 'move' | 'resize' | 'add-point';
+  selectedTool: 'select' | 'move' | 'resize' | 'add-point' | 'edit';
   zoom: number;
   theme: 'light' | 'dark';
   highlightColor: string;
