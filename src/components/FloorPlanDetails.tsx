@@ -21,6 +21,8 @@ export const FloorPlanDetails: React.FC<FloorPlanDetailsProps> = ({
     .filter(room => room.roomType === 'outdoor')
     .reduce((sum, room) => sum + room.sqFootage, 0);
 
+  const totalSqFt = totalLivableSqFt + totalNonLivableSqFt + totalOutdoorSqFt;
+
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h6" gutterBottom>
@@ -46,9 +48,7 @@ export const FloorPlanDetails: React.FC<FloorPlanDetailsProps> = ({
           <Typography variant="body1">
             <strong>Total Space:</strong>
           </Typography>
-          <Typography variant="body1">
-            {totalLivableSqFt + totalNonLivableSqFt + totalOutdoorSqFt} sq ft
-          </Typography>
+          <Typography variant="body1">{totalSqFt} sq ft</Typography>
 
           <Typography variant="body1">
             <strong>Number of Rooms:</strong>

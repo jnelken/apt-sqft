@@ -14,7 +14,7 @@ import { Room } from '../types';
 interface RoomListProps {
   rooms: Room[];
   selectedRoomId: string | null;
-  onRoomSelect: (roomId: string | null) => void;
+  onRoomSelect: (roomId: string) => void;
 }
 
 export const RoomList: React.FC<RoomListProps> = ({

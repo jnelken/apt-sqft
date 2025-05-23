@@ -279,7 +279,7 @@ function App() {
                 ...room,
                 width,
                 height,
-                sqFootage: (width * height) / 144, // Convert square inches to square feet
+                sqFootage: Math.round((width * height) / 144), // Convert square inches to square feet and round
               }
             : room,
         ),
@@ -305,6 +305,7 @@ function App() {
       points: [],
       x: centeredX,
       y: centeredY,
+      sqFootage: Math.round((roomData.width * roomData.height) / 144), // Round the square footage
     };
 
     setAppState(prev => ({
@@ -328,7 +329,7 @@ function App() {
             ? {
                 ...room,
                 ...roomData,
-                sqFootage: (roomData.width * roomData.height) / 144,
+                sqFootage: Math.round((roomData.width * roomData.height) / 144), // Round the square footage
               }
             : room,
         ),

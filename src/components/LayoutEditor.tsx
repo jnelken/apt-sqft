@@ -367,7 +367,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
         {rooms.map(room => (
           <RoomElement
             key={room.id}
-            isLivable={room.isLivable}
+            isLivable={room.roomType === 'livable'}
             wallColor={wallColor}
             isSelected={selectedRoomId === room.id}
             highlightColor={highlightColor}
