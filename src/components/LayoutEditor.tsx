@@ -125,7 +125,9 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   highlightColor,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
   const [dragStart, setDragStart] = useState<Point | null>(null);
+  const [viewportOffset, setViewportOffset] = useState<Point>({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
   const snapToGrid = useCallback(
@@ -137,34 +139,56 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent, roomId: string) => {
-      setIsDragging(true);
-      setDragStart({ x: e.clientX, y: e.clientY });
-      onRoomSelect(roomId);
+      // Only handle room dragging if not panning and not holding space
+      if (!isPanning && !e.shiftKey) {
+        setIsDragging(true);
+        setDragStart({ x: e.clientX, y: e.clientY });
+        onRoomSelect(roomId);
+      }
     },
-    [onRoomSelect],
+    [onRoomSelect, isPanning],
   );
+
+  const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
+    // Start panning if holding shift or right mouse button
+    if (e.shiftKey || e.button === 2) {
+      e.preventDefault();
+      setIsPanning(true);
+      setDragStart({ x: e.clientX, y: e.clientY });
+    }
+  }, []);
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
-      if (!isDragging || !dragStart || !selectedRoomId) return;
+      if (!dragStart) return;
 
-      const selectedRoom = rooms.find(room => room.id === selectedRoomId);
-      if (!selectedRoom) return;
+      if (isPanning) {
+        const dx = e.clientX - dragStart.x;
+        const dy = e.clientY - dragStart.y;
+        setViewportOffset(prev => ({
+          x: prev.x + dx,
+          y: prev.y + dy,
+        }));
+        setDragStart({ x: e.clientX, y: e.clientY });
+      } else if (isDragging && selectedRoomId) {
+        const selectedRoom = rooms.find(room => room.id === selectedRoomId);
+        if (!selectedRoom) return;
 
-      const dx = e.clientX - dragStart.x;
-      const dy = e.clientY - dragStart.y;
+        const dx = e.clientX - dragStart.x;
+        const dy = e.clientY - dragStart.y;
 
-      const newX = selectedRoom.x + dx;
-      const newY = selectedRoom.y + dy;
+        const newX = selectedRoom.x + dx;
+        const newY = selectedRoom.y + dy;
 
-      onRoomMove(selectedRoomId, newX, newY);
-      setDragStart({ x: e.clientX, y: e.clientY });
+        onRoomMove(selectedRoomId, newX, newY);
+        setDragStart({ x: e.clientX, y: e.clientY });
+      }
     },
-    [isDragging, dragStart, selectedRoomId, onRoomMove, rooms],
+    [isPanning, isDragging, dragStart, selectedRoomId, onRoomMove, rooms],
   );
 
   const handleMouseUp = useCallback(() => {
-    if (selectedRoomId) {
+    if (selectedRoomId && isDragging) {
       const selectedRoom = rooms.find(room => room.id === selectedRoomId);
       if (selectedRoom) {
         const snappedX = snapToGrid(selectedRoom.x);
@@ -173,11 +197,17 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       }
     }
     setIsDragging(false);
+    setIsPanning(false);
     setDragStart(null);
-  }, [selectedRoomId, rooms, snapToGrid, onRoomMove]);
+  }, [selectedRoomId, rooms, snapToGrid, onRoomMove, isDragging]);
+
+  // Prevent context menu on right click
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+  }, []);
 
   useEffect(() => {
-    if (isDragging) {
+    if (isDragging || isPanning) {
       window.addEventListener('mousemove', handleMouseMove as any);
       window.addEventListener('mouseup', handleMouseUp);
     }
@@ -185,14 +215,20 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       window.removeEventListener('mousemove', handleMouseMove as any);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [isDragging, isPanning, handleMouseMove, handleMouseUp]);
 
   return (
     <EditorContainer
       ref={containerRef}
+      onMouseDown={handleContainerMouseDown}
       onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}>
-      <EditorContent zoom={zoom}>
+      onMouseUp={handleMouseUp}
+      onContextMenu={handleContextMenu}>
+      <EditorContent
+        zoom={zoom}
+        style={{
+          transform: `translate(calc(-50% + ${viewportOffset.x}px), calc(-50% + ${viewportOffset.y}px)) scale(${zoom})`,
+        }}>
         {backgroundImage && (
           <BackgroundImage
             scale={imageScale}
