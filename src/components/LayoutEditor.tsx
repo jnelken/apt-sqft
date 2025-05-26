@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { styled } from '@mui/material/styles';
-import { Point, Room, Wall } from '../types';
+import { Point, Room, Wall, Furniture } from '../types';
 
 const EditorContainer = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -68,16 +68,19 @@ const RoomElement = styled('div')<{
   wallColor: string;
   isSelected: boolean;
   highlightColor: string;
-}>(({ isLivable, wallColor, isSelected, highlightColor }) => ({
+  isFurniture?: boolean;
+}>(({ isLivable, wallColor, isSelected, highlightColor, isFurniture }) => ({
   'position': 'absolute',
   'border': `2px solid ${wallColor}`,
   'backgroundColor': isSelected
     ? highlightColor
+    : isFurniture
+    ? '#FFA500'
     : isLivable
     ? 'transparent'
     : 'rgba(0, 0, 0, 0.5)',
   'backgroundImage':
-    !isLivable && !isSelected
+    !isLivable && !isSelected && !isFurniture
       ? `repeating-linear-gradient(
         45deg,
         rgba(0, 0, 0, 0.5),
@@ -87,11 +90,11 @@ const RoomElement = styled('div')<{
       )`
       : 'none',
   'cursor': 'move',
-  'opacity': 0.5,
+  'opacity': isFurniture ? 1 : 0.5,
 
   '&:hover': {
     borderColor: wallColor,
-    opacity: 0.6,
+    opacity: isFurniture ? 1 : 0.6,
   },
 }));
 
@@ -126,6 +129,7 @@ const ResizeHandle = styled('div')<{ position: string }>(({ position }) => ({
 
 interface LayoutEditorProps {
   rooms: Room[];
+  furniture: Furniture[];
   selectedRoomId: string | null;
   onRoomSelect: (roomId: string | null) => void;
   onRoomMove: (roomId: string, x: number, y: number) => void;
@@ -141,6 +145,7 @@ interface LayoutEditorProps {
 
 export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   rooms,
+  furniture,
   selectedRoomId,
   onRoomSelect,
   onRoomMove,
@@ -175,19 +180,26 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
         setIsDragging(true);
         setDragStart({ x: e.clientX, y: e.clientY });
         onRoomSelect(roomId);
+        e.stopPropagation(); // Prevent event from bubbling up to container
       }
     },
     [onRoomSelect, isPanning],
   );
 
-  const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
-    // Start panning if holding shift or right mouse button
-    if (e.shiftKey || e.button === 2) {
-      e.preventDefault();
-      setIsPanning(true);
-      setDragStart({ x: e.clientX, y: e.clientY });
-    }
-  }, []);
+  const handleContainerMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      // Start panning if holding shift or right mouse button
+      if (e.shiftKey || e.button === 2) {
+        e.preventDefault();
+        setIsPanning(true);
+        setDragStart({ x: e.clientX, y: e.clientY });
+      } else {
+        // Clear selection when clicking empty space
+        onRoomSelect(null);
+      }
+    },
+    [onRoomSelect],
+  );
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent, roomId: string, wall: string) => {
@@ -213,49 +225,61 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
         }));
         setDragStart({ x: e.clientX, y: e.clientY });
       } else if (isDragging && selectedRoomId) {
+        // Find the selected item in either rooms or furniture
         const selectedRoom = rooms.find(room => room.id === selectedRoomId);
-        if (!selectedRoom) return;
+        const selectedFurniture = furniture.find(
+          item => item.id === selectedRoomId,
+        );
+        const selectedItem = selectedRoom || selectedFurniture;
+
+        if (!selectedItem) return;
 
         const dx = e.clientX - dragStart.x;
         const dy = e.clientY - dragStart.y;
 
-        const newX = selectedRoom.x + dx;
-        const newY = selectedRoom.y + dy;
+        const newX = selectedItem.x + dx;
+        const newY = selectedItem.y + dy;
 
         onRoomMove(selectedRoomId, newX, newY);
         setDragStart({ x: e.clientX, y: e.clientY });
       } else if (isResizing && selectedRoomId && resizeWall) {
+        // Find the selected item in either rooms or furniture
         const selectedRoom = rooms.find(room => room.id === selectedRoomId);
-        if (!selectedRoom) return;
+        const selectedFurniture = furniture.find(
+          item => item.id === selectedRoomId,
+        );
+        const selectedItem = selectedRoom || selectedFurniture;
+
+        if (!selectedItem) return;
 
         const dx = (e.clientX - dragStart.x) / zoom;
         const dy = (e.clientY - dragStart.y) / zoom;
 
-        let newWidth = selectedRoom.width;
-        let newHeight = selectedRoom.height;
-        let newX = selectedRoom.x;
-        let newY = selectedRoom.y;
+        let newWidth = selectedItem.width;
+        let newHeight = selectedItem.height;
+        let newX = selectedItem.x;
+        let newY = selectedItem.y;
 
         switch (resizeWall) {
           case 'e':
-            newWidth = Math.max(gridSize, selectedRoom.width + dx);
+            newWidth = Math.max(gridSize, selectedItem.width + dx);
             break;
           case 'w':
-            newWidth = Math.max(gridSize, selectedRoom.width - dx);
-            newX = selectedRoom.x + dx;
+            newWidth = Math.max(gridSize, selectedItem.width - dx);
+            newX = selectedItem.x + dx;
             break;
           case 's':
-            newHeight = Math.max(gridSize, selectedRoom.height + dy);
+            newHeight = Math.max(gridSize, selectedItem.height + dy);
             break;
           case 'n':
-            newHeight = Math.max(gridSize, selectedRoom.height - dy);
-            newY = selectedRoom.y + dy;
+            newHeight = Math.max(gridSize, selectedItem.height - dy);
+            newY = selectedItem.y + dy;
             break;
         }
 
-        // Update room dimensions immediately
+        // Update item dimensions immediately
         onRoomResize(selectedRoomId, newWidth, newHeight);
-        if (newX !== selectedRoom.x || newY !== selectedRoom.y) {
+        if (newX !== selectedItem.x || newY !== selectedItem.y) {
           onRoomMove(selectedRoomId, newX, newY);
         }
         setDragStart({ x: e.clientX, y: e.clientY });
@@ -271,6 +295,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       onRoomMove,
       onRoomResize,
       rooms,
+      furniture,
       gridSize,
       zoom,
     ],
@@ -279,34 +304,46 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   const handleMouseUp = useCallback(() => {
     if (selectedRoomId) {
       if (isDragging) {
+        // Find the selected item in either rooms or furniture
         const selectedRoom = rooms.find(room => room.id === selectedRoomId);
-        if (selectedRoom) {
-          const snappedX = snapToGrid(selectedRoom.x);
-          const snappedY = snapToGrid(selectedRoom.y);
+        const selectedFurniture = furniture.find(
+          item => item.id === selectedRoomId,
+        );
+        const selectedItem = selectedRoom || selectedFurniture;
+
+        if (selectedItem) {
+          const snappedX = snapToGrid(selectedItem.x);
+          const snappedY = snapToGrid(selectedItem.y);
           onRoomMove(selectedRoomId, snappedX, snappedY);
         }
       } else if (isResizing) {
+        // Find the selected item in either rooms or furniture
         const selectedRoom = rooms.find(room => room.id === selectedRoomId);
-        if (selectedRoom) {
+        const selectedFurniture = furniture.find(
+          item => item.id === selectedRoomId,
+        );
+        const selectedItem = selectedRoom || selectedFurniture;
+
+        if (selectedItem) {
           // Snap dimensions to grid
-          const snappedWidth = snapToGrid(selectedRoom.width);
-          const snappedHeight = snapToGrid(selectedRoom.height);
-          let snappedX = selectedRoom.x;
-          let snappedY = selectedRoom.y;
+          const snappedWidth = snapToGrid(selectedItem.width);
+          const snappedHeight = snapToGrid(selectedItem.height);
+          let snappedX = selectedItem.x;
+          let snappedY = selectedItem.y;
 
           // Adjust position for west and north walls after snapping
           if (resizeWall === 'w') {
-            const widthDiff = snappedWidth - selectedRoom.width;
-            snappedX = selectedRoom.x + widthDiff;
+            const widthDiff = snappedWidth - selectedItem.width;
+            snappedX = selectedItem.x + widthDiff;
           }
           if (resizeWall === 'n') {
-            const heightDiff = snappedHeight - selectedRoom.height;
-            snappedY = selectedRoom.y + heightDiff;
+            const heightDiff = snappedHeight - selectedItem.height;
+            snappedY = selectedItem.y + heightDiff;
           }
 
           // Update final dimensions and position
           onRoomResize(selectedRoomId, snappedWidth, snappedHeight);
-          if (snappedX !== selectedRoom.x || snappedY !== selectedRoom.y) {
+          if (snappedX !== selectedItem.x || snappedY !== selectedItem.y) {
             onRoomMove(selectedRoomId, snappedX, snappedY);
           }
         }
@@ -320,6 +357,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   }, [
     selectedRoomId,
     rooms,
+    furniture,
     snapToGrid,
     onRoomMove,
     onRoomResize,
@@ -358,9 +396,19 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
           transform: `translate(calc(-50% + ${viewportOffset.x}px), calc(-50% + ${viewportOffset.y}px)) scale(${zoom})`,
         }}>
         {backgroundImage && (
-          <BackgroundImage
-            scale={imageScale}
-            style={{ backgroundImage: `url(${backgroundImage})` }}
+          <img
+            src={backgroundImage}
+            alt="Floor plan background"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              opacity: 0.5,
+              transform: `scale(${imageScale})`,
+            }}
           />
         )}
         <Grid gridSize={gridSize} opacity={gridOpacity} />
@@ -396,6 +444,44 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
                 <ResizeHandle
                   position="s"
                   onMouseDown={e => handleResizeStart(e, room.id, 's')}
+                />
+              </>
+            )}
+          </RoomElement>
+        ))}
+        {furniture.map(item => (
+          <RoomElement
+            key={item.id}
+            isLivable={false}
+            wallColor={wallColor}
+            isSelected={selectedRoomId === item.id}
+            highlightColor={highlightColor}
+            isFurniture={true}
+            style={{
+              left: `${item.x}em`,
+              top: `${item.y}em`,
+              width: `${item.width}em`,
+              height: `${item.height}em`,
+              borderColor: selectedRoomId === item.id ? '#2196f3' : wallColor,
+            }}
+            onMouseDown={e => handleMouseDown(e, item.id)}>
+            {selectedRoomId === item.id && (
+              <>
+                <ResizeHandle
+                  position="e"
+                  onMouseDown={e => handleResizeStart(e, item.id, 'e')}
+                />
+                <ResizeHandle
+                  position="w"
+                  onMouseDown={e => handleResizeStart(e, item.id, 'w')}
+                />
+                <ResizeHandle
+                  position="n"
+                  onMouseDown={e => handleResizeStart(e, item.id, 'n')}
+                />
+                <ResizeHandle
+                  position="s"
+                  onMouseDown={e => handleResizeStart(e, item.id, 's')}
                 />
               </>
             )}

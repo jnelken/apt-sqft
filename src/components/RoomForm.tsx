@@ -222,7 +222,7 @@ export const RoomForm: React.FC<RoomFormProps> = ({
         color="primary"
         fullWidth
         sx={{ mt: 2 }}>
-        {initialValues ? 'Update Room' : 'Add Room'}
+        {initialValues ? 'Update' : 'Add Room'}
       </Button>
 
       {initialValues && (onDelete || onDuplicate) && (

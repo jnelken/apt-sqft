@@ -11,6 +11,7 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import InfoIcon from '@mui/icons-material/Info';
 import ListIcon from '@mui/icons-material/List';
+import ChairIcon from '@mui/icons-material/Chair';
 import IconButton from '@mui/material/IconButton';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -24,10 +25,13 @@ import { ZoomControls } from './components/ZoomControls';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { FloorPlanName } from './components/FloorPlanName';
 import { FloorPlanDetails } from './components/FloorPlanDetails';
-import { AppState, Room, FloorPlan } from './types';
+import { AppState, Room, FloorPlan, Furniture } from './types';
 import { ColorSettings } from './components/ColorSettings';
 import { FloorPlanTabs } from './components/FloorPlanTabs';
 import { Typography } from '@mui/material';
+import { FurnitureForm } from './components/FurnitureForm';
+import { FurnitureList } from './components/FurnitureList';
+import { Divider } from '@mui/material';
 
 const INIT_GRID_SIZE = 12;
 
@@ -242,6 +246,9 @@ function App() {
   const selectedRoom = appState.floorPlan.rooms.find(
     room => room.id === appState.selectedRoomId,
   );
+  const selectedFurniture = appState.floorPlan.furniture.find(
+    item => item.id === appState.selectedRoomId,
+  );
 
   const handleRoomSelect = (roomId: string | null) => {
     setAppState(prev => ({ ...prev, selectedRoomId: roomId }));
@@ -251,40 +258,88 @@ function App() {
   };
 
   const handleRoomMove = (roomId: string, x: number, y: number) => {
-    setAppState(prev => ({
-      ...prev,
-      floorPlan: {
-        ...prev.floorPlan,
-        rooms: prev.floorPlan.rooms.map(room =>
-          room.id === roomId
-            ? {
-                ...room,
-                x,
-                y,
-              }
-            : room,
-        ),
-      },
-    }));
+    // Check if the item is a room or furniture
+    const isRoom = appState.floorPlan.rooms.some(room => room.id === roomId);
+    const isFurniture = appState.floorPlan.furniture.some(
+      item => item.id === roomId,
+    );
+
+    if (isRoom) {
+      setAppState(prev => ({
+        ...prev,
+        floorPlan: {
+          ...prev.floorPlan,
+          rooms: prev.floorPlan.rooms.map(room =>
+            room.id === roomId
+              ? {
+                  ...room,
+                  x,
+                  y,
+                }
+              : room,
+          ),
+        },
+      }));
+    } else if (isFurniture) {
+      setAppState(prev => ({
+        ...prev,
+        floorPlan: {
+          ...prev.floorPlan,
+          furniture: prev.floorPlan.furniture.map(item =>
+            item.id === roomId
+              ? {
+                  ...item,
+                  x,
+                  y,
+                }
+              : item,
+          ),
+        },
+      }));
+    }
   };
 
   const handleRoomResize = (roomId: string, width: number, height: number) => {
-    setAppState(prev => ({
-      ...prev,
-      floorPlan: {
-        ...prev.floorPlan,
-        rooms: prev.floorPlan.rooms.map(room =>
-          room.id === roomId
-            ? {
-                ...room,
-                width,
-                height,
-                sqFootage: Math.round((width * height) / 144), // Convert square inches to square feet and round
-              }
-            : room,
-        ),
-      },
-    }));
+    // Check if the item is a room or furniture
+    const isRoom = appState.floorPlan.rooms.some(room => room.id === roomId);
+    const isFurniture = appState.floorPlan.furniture.some(
+      item => item.id === roomId,
+    );
+
+    if (isRoom) {
+      setAppState(prev => ({
+        ...prev,
+        floorPlan: {
+          ...prev.floorPlan,
+          rooms: prev.floorPlan.rooms.map(room =>
+            room.id === roomId
+              ? {
+                  ...room,
+                  width,
+                  height,
+                  sqFootage: Math.round((width * height) / 144), // Convert square inches to square feet and round
+                }
+              : room,
+          ),
+        },
+      }));
+    } else if (isFurniture) {
+      setAppState(prev => ({
+        ...prev,
+        floorPlan: {
+          ...prev.floorPlan,
+          furniture: prev.floorPlan.furniture.map(item =>
+            item.id === roomId
+              ? {
+                  ...item,
+                  width,
+                  height,
+                }
+              : item,
+          ),
+        },
+      }));
+    }
   };
 
   const handleAddRoom = (roomData: Omit<Room, 'id' | 'points'>) => {
@@ -398,6 +453,100 @@ function App() {
     setAppState(prev => ({ ...prev, highlightColor: color }));
   };
 
+  const handleAddFurniture = (
+    furnitureData: Omit<Furniture, 'id' | 'points'>,
+  ) => {
+    // Get the editor container dimensions
+    const editorContainer = document.querySelector(
+      '.LayoutEditor',
+    ) as HTMLElement;
+    const editorWidth = editorContainer?.offsetWidth;
+    const editorHeight = editorContainer?.offsetHeight;
+
+    // Calculate center position by adding half the editor dimensions
+    const centeredX = editorWidth / 2 - furnitureData.width / 2;
+    const centeredY = editorHeight / 2 - furnitureData.height / 2;
+
+    const newFurniture: Furniture = {
+      ...furnitureData,
+      id: Date.now().toString(),
+      points: [],
+      x: centeredX,
+      y: centeredY,
+    };
+
+    setAppState(prev => ({
+      ...prev,
+      floorPlan: {
+        ...prev.floorPlan,
+        furniture: [...prev.floorPlan.furniture, newFurniture],
+      },
+    }));
+  };
+
+  const handleUpdateFurniture = (
+    furnitureData: Omit<Furniture, 'id' | 'points'>,
+  ) => {
+    if (!appState.selectedRoomId) return;
+
+    setAppState(prev => ({
+      ...prev,
+      floorPlan: {
+        ...prev.floorPlan,
+        furniture: prev.floorPlan.furniture.map(furniture =>
+          furniture.id === appState.selectedRoomId
+            ? {
+                ...furniture,
+                ...furnitureData,
+              }
+            : furniture,
+        ),
+      },
+    }));
+  };
+
+  const handleDeleteFurniture = () => {
+    if (!appState.selectedRoomId) return;
+
+    setAppState(prev => ({
+      ...prev,
+      floorPlan: {
+        ...prev.floorPlan,
+        furniture: prev.floorPlan.furniture.filter(
+          furniture => furniture.id !== appState.selectedRoomId,
+        ),
+      },
+      selectedRoomId: null,
+    }));
+    setSidebarTab(4); // Switch to Add Furniture tab after deletion
+  };
+
+  const handleDuplicateFurniture = () => {
+    if (!appState.selectedRoomId) return;
+    const furnitureToClone = appState.floorPlan.furniture.find(
+      furniture => furniture.id === appState.selectedRoomId,
+    );
+    if (!furnitureToClone) return;
+
+    const newFurniture: Furniture = {
+      ...furnitureToClone,
+      id: Date.now().toString(),
+      name: `${furnitureToClone.name} (Copy)`,
+      x: furnitureToClone.x + 50,
+      y: furnitureToClone.y + 50,
+      points: [],
+    };
+
+    setAppState(prev => ({
+      ...prev,
+      floorPlan: {
+        ...prev.floorPlan,
+        furniture: [...prev.floorPlan.furniture, newFurniture],
+      },
+      selectedRoomId: newFurniture.id,
+    }));
+  };
+
   const theme = createTheme({
     typography: {
       fontFamily: 'Geist, sans-serif',
@@ -491,6 +640,7 @@ function App() {
           <Box sx={{ flexGrow: 1, position: 'relative' }}>
             <LayoutEditor
               rooms={appState.floorPlan.rooms}
+              furniture={appState.floorPlan.furniture}
               selectedRoomId={appState.selectedRoomId}
               onRoomSelect={handleRoomSelect}
               onRoomMove={handleRoomMove}
@@ -517,6 +667,9 @@ function App() {
               </Tooltip>
               <Tooltip title="Room List">
                 <Tab icon={<ListIcon />} aria-label="Room List" />
+              </Tooltip>
+              <Tooltip title="Add Furniture">
+                <Tab icon={<ChairIcon />} aria-label="Add Furniture" />
               </Tooltip>
             </Tabs>
             {sidebarTab === 0 && <RoomForm onSubmit={handleAddRoom} />}
@@ -557,6 +710,41 @@ function App() {
                       }}
                     />
                   )
+                ) : selectedFurniture ? (
+                  appState.selectedTool === 'edit' ? (
+                    <Box>
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <IconButton
+                          onClick={() =>
+                            setAppState(prev => ({
+                              ...prev,
+                              selectedTool: 'select',
+                            }))
+                          }
+                          sx={{ mr: 1 }}>
+                          <ChevronLeftIcon />
+                        </IconButton>
+                        <Typography variant="h6">Edit Furniture</Typography>
+                      </Box>
+                      <FurnitureForm
+                        onSubmit={handleUpdateFurniture}
+                        initialValues={selectedFurniture}
+                        onDelete={handleDeleteFurniture}
+                        onDuplicate={handleDuplicateFurniture}
+                      />
+                    </Box>
+                  ) : (
+                    <RoomDetails
+                      room={selectedFurniture}
+                      onEdit={() => {
+                        setAppState(prev => ({
+                          ...prev,
+                          selectedTool: 'edit',
+                        }));
+                      }}
+                    />
+                  )
                 ) : (
                   <RoomDetails room={null} />
                 )}
@@ -566,11 +754,61 @@ function App() {
               <FloorPlanDetails floorPlan={appState.floorPlan} />
             )}
             {sidebarTab === 3 && (
-              <RoomList
-                rooms={appState.floorPlan.rooms}
-                selectedRoomId={appState.selectedRoomId}
-                onRoomSelect={handleRoomSelect}
-              />
+              <>
+                <RoomList
+                  rooms={appState.floorPlan.rooms}
+                  selectedRoomId={appState.selectedRoomId}
+                  onRoomSelect={handleRoomSelect}
+                />
+                <Divider />
+                <FurnitureList
+                  furniture={appState.floorPlan.furniture}
+                  selectedRoomId={appState.selectedRoomId}
+                  onRoomSelect={handleRoomSelect}
+                />
+              </>
+            )}
+            {sidebarTab === 4 && (
+              <>
+                {selectedRoom ? (
+                  appState.selectedTool === 'edit' ? (
+                    <Box>
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <IconButton
+                          onClick={() =>
+                            setAppState(prev => ({
+                              ...prev,
+                              selectedTool: 'select',
+                            }))
+                          }
+                          sx={{ mr: 1 }}>
+                          <ChevronLeftIcon />
+                        </IconButton>
+                        <Typography variant="h6">Edit Furniture</Typography>
+                      </Box>
+                      <FurnitureForm
+                        onSubmit={handleUpdateFurniture}
+                        initialValues={selectedRoom}
+                        onDelete={handleDeleteFurniture}
+                        onDuplicate={handleDuplicateFurniture}
+                      />
+                    </Box>
+                  ) : (
+                    <RoomDetails
+                      room={selectedRoom}
+                      onEdit={() => {
+                        setAppState(prev => ({
+                          ...prev,
+                          selectedTool: 'edit',
+                        }));
+                      }}
+                    />
+                  )
+                ) : (
+                  <FurnitureForm onSubmit={handleAddFurniture} />
+                )}
+              </>
             )}
           </Box>
         </Box>
