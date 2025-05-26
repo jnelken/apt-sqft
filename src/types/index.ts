@@ -45,4 +45,6 @@ export interface AppState {
   wallColor: string;
   gridSize: number;
   gridOpacity: number;
+  history: FloorPlan[];
+  historyIndex: number;
 }

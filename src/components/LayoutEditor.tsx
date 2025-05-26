@@ -132,8 +132,18 @@ interface LayoutEditorProps {
   furniture: Furniture[];
   selectedRoomId: string | null;
   onRoomSelect: (roomId: string | null) => void;
-  onRoomMove: (roomId: string, x: number, y: number) => void;
-  onRoomResize: (roomId: string, width: number, height: number) => void;
+  onRoomMove: (
+    roomId: string,
+    x: number,
+    y: number,
+    isDragging: boolean,
+  ) => void;
+  onRoomResize: (
+    roomId: string,
+    width: number,
+    height: number,
+    isResizing: boolean,
+  ) => void;
   gridSize: number;
   gridOpacity: number;
   zoom: number;
@@ -217,8 +227,8 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       if (!dragStart) return;
 
       if (isPanning) {
-        const dx = e.clientX - dragStart.x;
-        const dy = e.clientY - dragStart.y;
+        const dx = (e.clientX - dragStart.x) / zoom;
+        const dy = (e.clientY - dragStart.y) / zoom;
         setViewportOffset(prev => ({
           x: prev.x + dx,
           y: prev.y + dy,
@@ -234,13 +244,14 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
 
         if (!selectedItem) return;
 
-        const dx = e.clientX - dragStart.x;
-        const dy = e.clientY - dragStart.y;
+        const dx = (e.clientX - dragStart.x) / zoom;
+        const dy = (e.clientY - dragStart.y) / zoom;
 
+        // Calculate new absolute position
         const newX = selectedItem.x + dx;
         const newY = selectedItem.y + dy;
 
-        onRoomMove(selectedRoomId, newX, newY);
+        onRoomMove(selectedRoomId, newX, newY, true);
         setDragStart({ x: e.clientX, y: e.clientY });
       } else if (isResizing && selectedRoomId && resizeWall) {
         // Find the selected item in either rooms or furniture
@@ -278,9 +289,9 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
         }
 
         // Update item dimensions immediately
-        onRoomResize(selectedRoomId, newWidth, newHeight);
+        onRoomResize(selectedRoomId, newWidth, newHeight, true);
         if (newX !== selectedItem.x || newY !== selectedItem.y) {
-          onRoomMove(selectedRoomId, newX, newY);
+          onRoomMove(selectedRoomId, newX, newY, true);
         }
         setDragStart({ x: e.clientX, y: e.clientY });
       }
@@ -314,7 +325,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
         if (selectedItem) {
           const snappedX = snapToGrid(selectedItem.x);
           const snappedY = snapToGrid(selectedItem.y);
-          onRoomMove(selectedRoomId, snappedX, snappedY);
+          onRoomMove(selectedRoomId, snappedX, snappedY, false);
         }
       } else if (isResizing) {
         // Find the selected item in either rooms or furniture
@@ -342,9 +353,9 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
           }
 
           // Update final dimensions and position
-          onRoomResize(selectedRoomId, snappedWidth, snappedHeight);
+          onRoomResize(selectedRoomId, snappedWidth, snappedHeight, false);
           if (snappedX !== selectedItem.x || snappedY !== selectedItem.y) {
-            onRoomMove(selectedRoomId, snappedX, snappedY);
+            onRoomMove(selectedRoomId, snappedX, snappedY, false);
           }
         }
       }

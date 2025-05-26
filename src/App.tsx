@@ -32,6 +32,8 @@ import { Typography } from '@mui/material';
 import { FurnitureForm } from './components/FurnitureForm';
 import { FurnitureList } from './components/FurnitureList';
 import { Divider } from '@mui/material';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
 
 const INIT_GRID_SIZE = 12;
 
@@ -53,6 +55,8 @@ const initialAppState: AppState = {
   wallColor: '#377c7c',
   gridSize: INIT_GRID_SIZE,
   gridOpacity: 0.2,
+  history: [initialFloorPlan],
+  historyIndex: 0,
 };
 
 function App() {
@@ -74,7 +78,33 @@ function App() {
 
   const [appState, setAppState] = useState<AppState>(() => {
     const savedState = localStorage.getItem('appState');
-    return savedState ? JSON.parse(savedState) : initialAppState;
+    const savedHistory = sessionStorage.getItem('history');
+    const savedHistoryIndex = sessionStorage.getItem('historyIndex');
+
+    if (savedState) {
+      try {
+        const parsedState = JSON.parse(savedState);
+        // Merge with initial state to ensure all properties exist
+        return {
+          ...initialAppState,
+          ...parsedState,
+          // Ensure nested objects are also merged
+          floorPlan: {
+            ...initialAppState.floorPlan,
+            ...parsedState.floorPlan,
+          },
+          // Get history from sessionStorage
+          history: savedHistory
+            ? JSON.parse(savedHistory)
+            : [initialAppState.floorPlan],
+          historyIndex: savedHistoryIndex ? parseInt(savedHistoryIndex, 10) : 0,
+        };
+      } catch (e) {
+        console.error('Error parsing saved state:', e);
+        return initialAppState;
+      }
+    }
+    return initialAppState;
   });
 
   const [sidebarTab, setSidebarTab] = useState(0);
@@ -86,10 +116,80 @@ function App() {
     localStorage.setItem('currentFloorPlanName', currentFloorPlanName);
   }, [floorPlans, currentFloorPlanName]);
 
-  // Save app state to localStorage
+  // Save app state to localStorage (excluding history)
   useEffect(() => {
-    localStorage.setItem('appState', JSON.stringify(appState));
+    const { history, historyIndex, ...stateToSave } = appState;
+    localStorage.setItem('appState', JSON.stringify(stateToSave));
   }, [appState]);
+
+  // Save history to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('history', JSON.stringify(appState.history));
+    sessionStorage.setItem('historyIndex', appState.historyIndex.toString());
+  }, [appState.history, appState.historyIndex]);
+
+  // Add history management functions
+  const pushToHistory = (newFloorPlan: FloorPlan) => {
+    setAppState(prev => {
+      // Remove any future history if we're not at the end
+      const newHistory = prev.history.slice(0, prev.historyIndex + 1);
+      newHistory.push(newFloorPlan);
+      return {
+        ...prev,
+        floorPlan: newFloorPlan,
+        history: newHistory,
+        historyIndex: newHistory.length - 1,
+      };
+    });
+  };
+
+  const handleUndo = () => {
+    setAppState(prev => {
+      if (prev.historyIndex > 0) {
+        const newIndex = prev.historyIndex - 1;
+        return {
+          ...prev,
+          floorPlan: prev.history[newIndex],
+          historyIndex: newIndex,
+        };
+      }
+      return prev;
+    });
+  };
+
+  const handleRedo = () => {
+    setAppState(prev => {
+      if (prev.historyIndex < prev.history.length - 1) {
+        const newIndex = prev.historyIndex + 1;
+        return {
+          ...prev,
+          floorPlan: prev.history[newIndex],
+          historyIndex: newIndex,
+        };
+      }
+      return prev;
+    });
+  };
+
+  // Add keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleFloorPlanSelect = (name: string) => {
     // Save current floor plan state
@@ -100,10 +200,7 @@ function App() {
 
     // Load selected floor plan
     setCurrentFloorPlanName(name);
-    setAppState(prev => ({
-      ...prev,
-      floorPlan: floorPlans[name],
-    }));
+    pushToHistory(floorPlans[name]);
   };
 
   const handleNameChange = (name: string) => {
@@ -118,10 +215,8 @@ function App() {
       setCurrentFloorPlanName(name);
     }
 
-    setAppState(prev => ({
-      ...prev,
-      floorPlan: { ...prev.floorPlan, name },
-    }));
+    const newFloorPlan = { ...appState.floorPlan, name };
+    pushToHistory(newFloorPlan);
   };
 
   const handleDelete = () => {
@@ -257,87 +352,94 @@ function App() {
     }
   };
 
-  const handleRoomMove = (roomId: string, x: number, y: number) => {
+  const handleRoomMove = (
+    roomId: string,
+    x: number,
+    y: number,
+    isDragging: boolean = false,
+  ) => {
     // Check if the item is a room or furniture
     const isRoom = appState.floorPlan.rooms.some(room => room.id === roomId);
     const isFurniture = appState.floorPlan.furniture.some(
       item => item.id === roomId,
     );
 
+    const newFloorPlan = { ...appState.floorPlan };
+
     if (isRoom) {
-      setAppState(prev => ({
-        ...prev,
-        floorPlan: {
-          ...prev.floorPlan,
-          rooms: prev.floorPlan.rooms.map(room =>
-            room.id === roomId
-              ? {
-                  ...room,
-                  x,
-                  y,
-                }
-              : room,
-          ),
-        },
-      }));
+      newFloorPlan.rooms = newFloorPlan.rooms.map(room =>
+        room.id === roomId
+          ? {
+              ...room,
+              x,
+              y,
+            }
+          : room,
+      );
     } else if (isFurniture) {
+      newFloorPlan.furniture = newFloorPlan.furniture.map(item =>
+        item.id === roomId
+          ? {
+              ...item,
+              x,
+              y,
+            }
+          : item,
+      );
+    }
+
+    // Only push to history if we're not dragging (i.e., this is the final position)
+    if (!isDragging) {
+      pushToHistory(newFloorPlan);
+    } else {
+      // Just update the current state without adding to history
       setAppState(prev => ({
         ...prev,
-        floorPlan: {
-          ...prev.floorPlan,
-          furniture: prev.floorPlan.furniture.map(item =>
-            item.id === roomId
-              ? {
-                  ...item,
-                  x,
-                  y,
-                }
-              : item,
-          ),
-        },
+        floorPlan: newFloorPlan,
       }));
     }
   };
 
-  const handleRoomResize = (roomId: string, width: number, height: number) => {
-    // Check if the item is a room or furniture
-    const isRoom = appState.floorPlan.rooms.some(room => room.id === roomId);
-    const isFurniture = appState.floorPlan.furniture.some(
-      item => item.id === roomId,
-    );
+  const handleRoomResize = (
+    roomId: string,
+    width: number,
+    height: number,
+    isResizing: boolean = false,
+  ) => {
+    const newFloorPlan = { ...appState.floorPlan };
+    const isRoom = newFloorPlan.rooms.some(room => room.id === roomId);
+    const isFurniture = newFloorPlan.furniture.some(item => item.id === roomId);
 
     if (isRoom) {
-      setAppState(prev => ({
-        ...prev,
-        floorPlan: {
-          ...prev.floorPlan,
-          rooms: prev.floorPlan.rooms.map(room =>
-            room.id === roomId
-              ? {
-                  ...room,
-                  width,
-                  height,
-                  sqFootage: Math.round((width * height) / 144), // Convert square inches to square feet and round
-                }
-              : room,
-          ),
-        },
-      }));
+      newFloorPlan.rooms = newFloorPlan.rooms.map(room =>
+        room.id === roomId
+          ? {
+              ...room,
+              width,
+              height,
+            }
+          : room,
+      );
     } else if (isFurniture) {
+      newFloorPlan.furniture = newFloorPlan.furniture.map(item =>
+        item.id === roomId
+          ? {
+              ...item,
+              width,
+              height,
+            }
+          : item,
+      );
+    }
+
+    // Only push to history if we're not resizing (i.e., this is the final size)
+    if (!isResizing) {
+      pushToHistory(newFloorPlan);
+    } else {
+      // Just update the current state without adding to history
       setAppState(prev => ({
         ...prev,
-        floorPlan: {
-          ...prev.floorPlan,
-          furniture: prev.floorPlan.furniture.map(item =>
-            item.id === roomId
-              ? {
-                  ...item,
-                  width,
-                  height,
-                }
-              : item,
-          ),
-        },
+        floorPlan: newFloorPlan,
       }));
     }
   };
@@ -456,32 +558,18 @@ function App() {
   const handleAddFurniture = (
     furnitureData: Omit<Furniture, 'id' | 'points'>,
   ) => {
-    // Get the editor container dimensions
-    const editorContainer = document.querySelector(
-      '.LayoutEditor',
-    ) as HTMLElement;
-    const editorWidth = editorContainer?.offsetWidth;
-    const editorHeight = editorContainer?.offsetHeight;
-
-    // Calculate center position by adding half the editor dimensions
-    const centeredX = editorWidth / 2 - furnitureData.width / 2;
-    const centeredY = editorHeight / 2 - furnitureData.height / 2;
-
     const newFurniture: Furniture = {
       ...furnitureData,
       id: Date.now().toString(),
       points: [],
-      x: centeredX,
-      y: centeredY,
     };
 
-    setAppState(prev => ({
-      ...prev,
-      floorPlan: {
-        ...prev.floorPlan,
-        furniture: [...prev.floorPlan.furniture, newFurniture],
-      },
-    }));
+    const newFloorPlan = {
+      ...appState.floorPlan,
+      furniture: [...appState.floorPlan.furniture, newFurniture],
+    };
+
+    pushToHistory(newFloorPlan);
   };
 
   const handleUpdateFurniture = (
@@ -489,35 +577,33 @@ function App() {
   ) => {
     if (!appState.selectedRoomId) return;
 
-    setAppState(prev => ({
-      ...prev,
-      floorPlan: {
-        ...prev.floorPlan,
-        furniture: prev.floorPlan.furniture.map(furniture =>
-          furniture.id === appState.selectedRoomId
-            ? {
-                ...furniture,
-                ...furnitureData,
-              }
-            : furniture,
-        ),
-      },
-    }));
+    const newFloorPlan = {
+      ...appState.floorPlan,
+      furniture: appState.floorPlan.furniture.map(furniture =>
+        furniture.id === appState.selectedRoomId
+          ? {
+              ...furniture,
+              ...furnitureData,
+            }
+          : furniture,
+      ),
+    };
+
+    pushToHistory(newFloorPlan);
   };
 
   const handleDeleteFurniture = () => {
     if (!appState.selectedRoomId) return;
 
-    setAppState(prev => ({
-      ...prev,
-      floorPlan: {
-        ...prev.floorPlan,
-        furniture: prev.floorPlan.furniture.filter(
-          furniture => furniture.id !== appState.selectedRoomId,
-        ),
-      },
-      selectedRoomId: null,
-    }));
+    const newFloorPlan = {
+      ...appState.floorPlan,
+      furniture: appState.floorPlan.furniture.filter(
+        furniture => furniture.id !== appState.selectedRoomId,
+      ),
+    };
+
+    pushToHistory(newFloorPlan);
+    setAppState(prev => ({ ...prev, selectedRoomId: null }));
     setSidebarTab(4); // Switch to Add Furniture tab after deletion
   };
 
@@ -537,14 +623,13 @@ function App() {
       points: [],
     };
 
-    setAppState(prev => ({
-      ...prev,
-      floorPlan: {
-        ...prev.floorPlan,
-        furniture: [...prev.floorPlan.furniture, newFurniture],
-      },
-      selectedRoomId: newFurniture.id,
-    }));
+    const newFloorPlan = {
+      ...appState.floorPlan,
+      furniture: [...appState.floorPlan.furniture, newFurniture],
+    };
+
+    pushToHistory(newFloorPlan);
+    setAppState(prev => ({ ...prev, selectedRoomId: newFurniture.id }));
   };
 
   const theme = createTheme({
@@ -592,6 +677,27 @@ function App() {
               highlightColor={appState.highlightColor}
               onHighlightColorChange={handleHighlightColorChange}
             />
+            <Box sx={{ width: 16 }} />
+            <Tooltip title="Undo (⌘Z)">
+              <span>
+                <IconButton
+                  onClick={handleUndo}
+                  disabled={appState.historyIndex === 0}>
+                  <UndoIcon />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Redo (⌘⇧Z)">
+              <span>
+                <IconButton
+                  onClick={handleRedo}
+                  disabled={
+                    appState.historyIndex === appState.history.length - 1
+                  }>
+                  <RedoIcon />
+                </IconButton>
+              </span>
+            </Tooltip>
             <Box sx={{ flexGrow: 1 }} />
             <ZoomControls
               zoom={appState.zoom}
