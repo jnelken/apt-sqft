@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { styled } from '@mui/material/styles';
 import { Point, Room, Wall, Furniture } from '../types';
 
+/** position relative container */
 const EditorContainer = styled('div')(({ theme }) => ({
   position: 'relative',
   width: '100%',
@@ -11,6 +12,7 @@ const EditorContainer = styled('div')(({ theme }) => ({
   fontSize: '1px',
 }));
 
+/** Centered zoom container */
 const EditorContent = styled('div')<{ zoom: number }>(({ zoom }) => ({
   position: 'absolute',
   top: '50%',
@@ -39,25 +41,27 @@ const Grid = styled('div')<{ gridSize: number; opacity: number }>(
     )
       .toString(16)
       .padStart(2, '0')} 1px, transparent 1px)
-  `,
+      `,
     backgroundSize: `${gridSize}px ${gridSize}px`,
   }),
 );
 
-const BackgroundImage = styled('div')<{ scale: number }>(
-  ({ theme, scale }) => ({
+const BackgroundImage = styled('div')<{ scale: number; imageUrl: string }>(
+  ({ theme, scale, imageUrl }) => ({
+    opacity: 0.5,
     position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: `translate(-50%, -50%) scale(${scale})`,
-    backgroundSize: 'contain',
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
-    pointerEvents: 'none',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
     width: '100%',
     height: '100%',
-    minWidth: '100%',
-    minHeight: '100%',
+    backgroundImage: `url(${imageUrl})`,
+    backgroundSize: 'contain',
+    backgroundRepeat: 'no-repeat',
+    transform: `scale(${scale})`,
+    transformOrigin: 'top left',
+    pointerEvents: 'none',
     filter:
       theme.palette.mode === 'dark' ? 'invert(1) brightness(0.6)' : 'none',
   }),
@@ -407,20 +411,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
           transform: `translate(calc(-50% + ${viewportOffset.x}px), calc(-50% + ${viewportOffset.y}px)) scale(${zoom})`,
         }}>
         {backgroundImage && (
-          <img
-            src={backgroundImage}
-            alt="Floor plan background"
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              opacity: 0.5,
-              transform: `scale(${imageScale})`,
-            }}
-          />
+          <BackgroundImage scale={imageScale} imageUrl={backgroundImage} />
         )}
         <Grid gridSize={gridSize} opacity={gridOpacity} />
         {rooms.map(room => (
