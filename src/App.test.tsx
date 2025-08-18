@@ -2,8 +2,8 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders learn react link', () => {
+test('renders floor plan editor', () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  const floorPlanName = screen.getByDisplayValue('Untitled');
+  expect(floorPlanName).toBeInTheDocument();
 });

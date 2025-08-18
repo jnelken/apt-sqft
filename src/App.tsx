@@ -36,6 +36,21 @@ import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 
 const INIT_GRID_SIZE = 12;
+// Maximum number of history entries to prevent session storage overflow
+// Each entry contains a complete FloorPlan object, so 50 entries should be reasonable
+// while still providing good undo/redo functionality
+const MAX_HISTORY_SIZE = 50;
+
+// Utility function to estimate session storage usage
+const getSessionStorageSize = () => {
+  let total = 0;
+  for (let key in sessionStorage) {
+    if (sessionStorage.hasOwnProperty(key)) {
+      total += sessionStorage[key].length + key.length;
+    }
+  }
+  return total;
+};
 
 const initialFloorPlan = {
   name: 'Untitled',
@@ -84,6 +99,40 @@ function App() {
     if (savedState) {
       try {
         const parsedState = JSON.parse(savedState);
+        let history = [initialAppState.floorPlan];
+        let historyIndex = 0;
+
+        // Try to load history from sessionStorage with size validation
+        if (savedHistory) {
+          try {
+            const parsedHistory = JSON.parse(savedHistory);
+            if (Array.isArray(parsedHistory)) {
+              // Limit history size on load
+              history =
+                parsedHistory.length > MAX_HISTORY_SIZE
+                  ? parsedHistory.slice(-MAX_HISTORY_SIZE)
+                  : parsedHistory;
+
+              // Adjust history index if history was truncated
+              const savedIndex = savedHistoryIndex
+                ? parseInt(savedHistoryIndex, 10)
+                : 0;
+              historyIndex =
+                parsedHistory.length > MAX_HISTORY_SIZE
+                  ? Math.min(savedIndex, history.length - 1)
+                  : savedIndex;
+            }
+          } catch (historyError) {
+            console.warn(
+              'Error parsing saved history, using default:',
+              historyError,
+            );
+            // Clear corrupted history
+            sessionStorage.removeItem('history');
+            sessionStorage.removeItem('historyIndex');
+          }
+        }
+
         // Merge with initial state to ensure all properties exist
         return {
           ...initialAppState,
@@ -93,11 +142,8 @@ function App() {
             ...initialAppState.floorPlan,
             ...parsedState.floorPlan,
           },
-          // Get history from sessionStorage
-          history: savedHistory
-            ? JSON.parse(savedHistory)
-            : [initialAppState.floorPlan],
-          historyIndex: savedHistoryIndex ? parseInt(savedHistoryIndex, 10) : 0,
+          history,
+          historyIndex,
         };
       } catch (e) {
         console.error('Error parsing saved state:', e);
@@ -122,18 +168,58 @@ function App() {
     localStorage.setItem('appState', JSON.stringify(stateToSave));
   }, [appState]);
 
-  // Save history to sessionStorage
+  // Save history to sessionStorage with error handling
   useEffect(() => {
-    sessionStorage.setItem('history', JSON.stringify(appState.history));
-    sessionStorage.setItem('historyIndex', appState.historyIndex.toString());
+    try {
+      sessionStorage.setItem('history', JSON.stringify(appState.history));
+      sessionStorage.setItem('historyIndex', appState.historyIndex.toString());
+    } catch (error) {
+      // If sessionStorage is full, clear old history and try again
+      console.warn('Session storage full, clearing old history:', error);
+      const reducedHistory = appState.history.slice(
+        -Math.floor(MAX_HISTORY_SIZE / 2),
+      );
+      const newHistoryIndex = Math.min(
+        appState.historyIndex,
+        reducedHistory.length - 1,
+      );
+
+      try {
+        sessionStorage.setItem('history', JSON.stringify(reducedHistory));
+        sessionStorage.setItem('historyIndex', newHistoryIndex.toString());
+
+        // Update app state to reflect the reduced history
+        setAppState(prev => ({
+          ...prev,
+          history: reducedHistory,
+          historyIndex: newHistoryIndex,
+        }));
+      } catch (secondError) {
+        console.error('Failed to save even reduced history:', secondError);
+        // Clear all history as last resort
+        sessionStorage.removeItem('history');
+        sessionStorage.removeItem('historyIndex');
+      }
+    }
   }, [appState.history, appState.historyIndex]);
 
   // Add history management functions
   const pushToHistory = (newFloorPlan: FloorPlan) => {
     setAppState(prev => {
       // Remove any future history if we're not at the end
-      const newHistory = prev.history.slice(0, prev.historyIndex + 1);
+      let newHistory = prev.history.slice(0, prev.historyIndex + 1);
       newHistory.push(newFloorPlan);
+
+      // Limit history size to prevent session storage overflow
+      if (newHistory.length > MAX_HISTORY_SIZE) {
+        const oldLength = newHistory.length;
+        // Remove oldest entries, keeping the most recent MAX_HISTORY_SIZE entries
+        newHistory = newHistory.slice(newHistory.length - MAX_HISTORY_SIZE);
+        console.log(
+          `History trimmed from ${oldLength} to ${newHistory.length} entries`,
+        );
+      }
+
       return {
         ...prev,
         floorPlan: newFloorPlan,
