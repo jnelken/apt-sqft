@@ -12,6 +12,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { Furniture } from '../types';
 import { CompactTextField } from './ui/CompactTextField';
+import { FURNITURE_TEMPLATES } from '../data/furnitureTemplates';
 
 interface FurnitureFormProps {
   onSubmit: (furniture: Omit<Furniture, 'id' | 'points'>) => void;
@@ -20,18 +21,10 @@ interface FurnitureFormProps {
   onDuplicate?: () => void;
 }
 
-const FURNITURE_TYPES = [
-  'Sofa',
-  'Chair',
-  'Table',
-  'Bed',
-  'Desk',
-  'Bookshelf',
-  'Cabinet',
-  'TV Stand',
-  'Dresser',
-  'Other',
-];
+// Get unique furniture types from templates
+const FURNITURE_TYPES = Array.from(
+  new Set(FURNITURE_TEMPLATES.map(template => template.type)),
+).sort();
 
 export const FurnitureForm: React.FC<FurnitureFormProps> = ({
   onSubmit,
@@ -39,6 +32,10 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
   onDelete,
   onDuplicate,
 }) => {
+  // Helper function to find template by type
+  const findTemplateByType = (type: string) => {
+    return FURNITURE_TEMPLATES.find(template => template.type === type);
+  };
   const [formData, setFormData] = useState({
     name: initialValues?.name || 'Furniture',
     heightFeet: Math.floor((initialValues?.height || 30) / 12),
@@ -71,6 +68,11 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
     e.preventDefault();
     const totalHeight = formData.heightFeet * 12 + formData.heightInches;
     const totalWidth = formData.widthFeet * 12 + formData.widthInches;
+
+    // Get template color if available, otherwise use default
+    const template = findTemplateByType(formData.type);
+    const defaultColor = template?.defaultColor || '#D2691E';
+
     onSubmit({
       name: formData.name,
       height: totalHeight,
@@ -81,6 +83,7 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
       type: formData.type,
       x: initialValues?.x || formData.x,
       y: initialValues?.y || formData.y,
+      color: initialValues?.color || defaultColor,
     });
   };
 
@@ -102,9 +105,26 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
         <Select
           value={formData.type}
           label="Furniture Type"
-          onChange={e =>
-            setFormData(prev => ({ ...prev, type: e.target.value }))
-          }>
+          onChange={e => {
+            const newType = e.target.value;
+            const template = findTemplateByType(newType);
+
+            // Update type and dimensions if template found
+            if (template && !initialValues) {
+              // Only update dimensions for new furniture, not when editing existing
+              setFormData(prev => ({
+                ...prev,
+                type: newType,
+                heightFeet: Math.floor(template.defaultHeight / 12),
+                heightInches: template.defaultHeight % 12,
+                widthFeet: Math.floor(template.defaultWidth / 12),
+                widthInches: template.defaultWidth % 12,
+                name: template.name, // Also update the name to match template
+              }));
+            } else {
+              setFormData(prev => ({ ...prev, type: newType }));
+            }
+          }}>
           {FURNITURE_TYPES.map(type => (
             <MenuItem key={type} value={type}>
               {type}

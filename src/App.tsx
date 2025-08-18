@@ -156,6 +156,62 @@ function App() {
   const [sidebarTab, setSidebarTab] = useState(0);
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
 
+  // Migration: Add default colors to existing furniture that doesn't have them
+  useEffect(() => {
+    let needsFloorPlansMigration = false;
+    let needsAppStateMigration = false;
+
+    // Check if any floor plans need migration
+    const migratedFloorPlans = Object.keys(floorPlans).reduce((acc, key) => {
+      const floorPlan = floorPlans[key];
+      const furnitureNeedsMigration = floorPlan.furniture.some(
+        furniture => !furniture.color,
+      );
+
+      if (furnitureNeedsMigration) {
+        needsFloorPlansMigration = true;
+        acc[key] = {
+          ...floorPlan,
+          furniture: floorPlan.furniture.map(furniture => ({
+            ...furniture,
+            color: furniture.color || '#D2691E', // Default warm brown color
+          })),
+        };
+      } else {
+        acc[key] = floorPlan;
+      }
+      return acc;
+    }, {} as { [key: string]: FloorPlan });
+
+    // Check if current app state needs migration
+    const currentFurnitureNeedsMigration = appState.floorPlan.furniture.some(
+      furniture => !furniture.color,
+    );
+    let migratedAppState = appState;
+
+    if (currentFurnitureNeedsMigration) {
+      needsAppStateMigration = true;
+      migratedAppState = {
+        ...appState,
+        floorPlan: {
+          ...appState.floorPlan,
+          furniture: appState.floorPlan.furniture.map(furniture => ({
+            ...furniture,
+            color: furniture.color || '#D2691E', // Default warm brown color
+          })),
+        },
+      };
+    }
+
+    // Apply migrations if needed
+    if (needsFloorPlansMigration) {
+      setFloorPlans(migratedFloorPlans);
+    }
+    if (needsAppStateMigration) {
+      setAppState(migratedAppState);
+    }
+  }, []); // Run only once on mount
+
   // Save floor plans and current name to localStorage
   useEffect(() => {
     localStorage.setItem('floorPlans', JSON.stringify(floorPlans));
@@ -257,7 +313,7 @@ function App() {
     });
   };
 
-  // Add keyboard shortcuts for undo/redo
+  // Add keyboard shortcuts for undo/redo and delete
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
@@ -270,12 +326,15 @@ function App() {
       } else if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
         e.preventDefault();
         handleRedo();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        handleDeleteSelected();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [appState.selectedRoomId]);
 
   const handleFloorPlanSelect = (name: string) => {
     // Save current floor plan state
@@ -583,16 +642,15 @@ function App() {
   const handleDeleteRoom = () => {
     if (!appState.selectedRoomId) return;
 
-    setAppState(prev => ({
-      ...prev,
-      floorPlan: {
-        ...prev.floorPlan,
-        rooms: prev.floorPlan.rooms.filter(
-          room => room.id !== appState.selectedRoomId,
-        ),
-      },
-      selectedRoomId: null,
-    }));
+    const newFloorPlan = {
+      ...appState.floorPlan,
+      rooms: appState.floorPlan.rooms.filter(
+        room => room.id !== appState.selectedRoomId,
+      ),
+    };
+
+    pushToHistory(newFloorPlan);
+    setAppState(prev => ({ ...prev, selectedRoomId: null }));
     setSidebarTab(0); // Switch to Add Room tab after deletion
   };
 
@@ -716,6 +774,22 @@ function App() {
 
     pushToHistory(newFloorPlan);
     setAppState(prev => ({ ...prev, selectedRoomId: newFurniture.id }));
+  };
+
+  const handleDeleteSelected = () => {
+    if (!appState.selectedRoomId) return;
+
+    // Check if the selected item is a room
+    const isRoom = appState.floorPlan.rooms.some(
+      room => room.id === appState.selectedRoomId,
+    );
+
+    if (isRoom) {
+      handleDeleteRoom();
+    } else {
+      // It must be furniture
+      handleDeleteFurniture();
+    }
   };
 
   const theme = createTheme({
@@ -846,8 +920,29 @@ function App() {
               highlightColor={appState.highlightColor}
             />
           </Box>
-          <Box sx={{ width: 400, borderLeft: 1, borderColor: 'divider' }}>
-            <Tabs value={sidebarTab} onChange={handleTabChange}>
+          <Box
+            sx={{
+              width: 400,
+              borderLeft: 1,
+              borderColor: 'divider',
+              display: 'flex',
+              flexDirection: 'column',
+            }}>
+            <Tabs
+              value={sidebarTab}
+              onChange={handleTabChange}
+              variant="scrollable"
+              scrollButtons="auto"
+              sx={{
+                'minHeight': 48,
+                '& .MuiTabs-flexContainer': {
+                  justifyContent: 'space-around',
+                },
+                '& .MuiTab-root': {
+                  minWidth: 'auto',
+                  flex: 1,
+                },
+              }}>
               <Tooltip title="Add Room">
                 <Tab icon={<AddIcon />} aria-label="Add Room" />
               </Tooltip>
@@ -864,144 +959,146 @@ function App() {
                 <Tab icon={<ChairIcon />} aria-label="Add Furniture" />
               </Tooltip>
             </Tabs>
-            {sidebarTab === 0 && <RoomForm onSubmit={handleAddRoom} />}
-            {sidebarTab === 1 && (
-              <>
-                {selectedRoom ? (
-                  appState.selectedTool === 'edit' ? (
-                    <Box>
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <IconButton
-                          onClick={() =>
-                            setAppState(prev => ({
-                              ...prev,
-                              selectedTool: 'select',
-                            }))
-                          }
-                          sx={{ mr: 1 }}>
-                          <ChevronLeftIcon />
-                        </IconButton>
-                        <Typography variant="h6">Edit Room</Typography>
+            <Box sx={{ flex: 1, overflow: 'auto' }}>
+              {sidebarTab === 0 && <RoomForm onSubmit={handleAddRoom} />}
+              {sidebarTab === 1 && (
+                <>
+                  {selectedRoom ? (
+                    appState.selectedTool === 'edit' ? (
+                      <Box>
+                        <Box
+                          sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                          <IconButton
+                            onClick={() =>
+                              setAppState(prev => ({
+                                ...prev,
+                                selectedTool: 'select',
+                              }))
+                            }
+                            sx={{ mr: 1 }}>
+                            <ChevronLeftIcon />
+                          </IconButton>
+                          <Typography variant="h6">Edit Room</Typography>
+                        </Box>
+                        <RoomForm
+                          onSubmit={handleUpdateRoom}
+                          initialValues={selectedRoom}
+                          onDelete={handleDeleteRoom}
+                          onDuplicate={handleDuplicateRoom}
+                        />
                       </Box>
-                      <RoomForm
-                        onSubmit={handleUpdateRoom}
-                        initialValues={selectedRoom}
-                        onDelete={handleDeleteRoom}
-                        onDuplicate={handleDuplicateRoom}
+                    ) : (
+                      <RoomDetails
+                        room={selectedRoom}
+                        onEdit={() => {
+                          setAppState(prev => ({
+                            ...prev,
+                            selectedTool: 'edit',
+                          }));
+                        }}
                       />
-                    </Box>
-                  ) : (
-                    <RoomDetails
-                      room={selectedRoom}
-                      onEdit={() => {
-                        setAppState(prev => ({
-                          ...prev,
-                          selectedTool: 'edit',
-                        }));
-                      }}
-                    />
-                  )
-                ) : selectedFurniture ? (
-                  appState.selectedTool === 'edit' ? (
-                    <Box>
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <IconButton
-                          onClick={() =>
-                            setAppState(prev => ({
-                              ...prev,
-                              selectedTool: 'select',
-                            }))
-                          }
-                          sx={{ mr: 1 }}>
-                          <ChevronLeftIcon />
-                        </IconButton>
-                        <Typography variant="h6">Edit Furniture</Typography>
+                    )
+                  ) : selectedFurniture ? (
+                    appState.selectedTool === 'edit' ? (
+                      <Box>
+                        <Box
+                          sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                          <IconButton
+                            onClick={() =>
+                              setAppState(prev => ({
+                                ...prev,
+                                selectedTool: 'select',
+                              }))
+                            }
+                            sx={{ mr: 1 }}>
+                            <ChevronLeftIcon />
+                          </IconButton>
+                          <Typography variant="h6">Edit Furniture</Typography>
+                        </Box>
+                        <FurnitureForm
+                          onSubmit={handleUpdateFurniture}
+                          initialValues={selectedFurniture}
+                          onDelete={handleDeleteFurniture}
+                          onDuplicate={handleDuplicateFurniture}
+                        />
                       </Box>
-                      <FurnitureForm
-                        onSubmit={handleUpdateFurniture}
-                        initialValues={selectedFurniture}
-                        onDelete={handleDeleteFurniture}
-                        onDuplicate={handleDuplicateFurniture}
+                    ) : (
+                      <RoomDetails
+                        room={selectedFurniture}
+                        onEdit={() => {
+                          setAppState(prev => ({
+                            ...prev,
+                            selectedTool: 'edit',
+                          }));
+                        }}
                       />
-                    </Box>
+                    )
                   ) : (
-                    <RoomDetails
-                      room={selectedFurniture}
-                      onEdit={() => {
-                        setAppState(prev => ({
-                          ...prev,
-                          selectedTool: 'edit',
-                        }));
-                      }}
-                    />
-                  )
-                ) : (
-                  <RoomDetails room={null} />
-                )}
-              </>
-            )}
-            {sidebarTab === 2 && (
-              <FloorPlanDetails floorPlan={appState.floorPlan} />
-            )}
-            {sidebarTab === 3 && (
-              <>
-                <RoomList
-                  rooms={appState.floorPlan.rooms}
-                  selectedRoomId={appState.selectedRoomId}
-                  onRoomSelect={handleRoomSelect}
-                />
-                <Divider />
-                <FurnitureList
-                  furniture={appState.floorPlan.furniture}
-                  selectedRoomId={appState.selectedRoomId}
-                  onRoomSelect={handleRoomSelect}
-                />
-              </>
-            )}
-            {sidebarTab === 4 && (
-              <>
-                {selectedRoom ? (
-                  appState.selectedTool === 'edit' ? (
-                    <Box>
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <IconButton
-                          onClick={() =>
-                            setAppState(prev => ({
-                              ...prev,
-                              selectedTool: 'select',
-                            }))
-                          }
-                          sx={{ mr: 1 }}>
-                          <ChevronLeftIcon />
-                        </IconButton>
-                        <Typography variant="h6">Edit Furniture</Typography>
+                    <RoomDetails room={null} />
+                  )}
+                </>
+              )}
+              {sidebarTab === 2 && (
+                <FloorPlanDetails floorPlan={appState.floorPlan} />
+              )}
+              {sidebarTab === 3 && (
+                <>
+                  <RoomList
+                    rooms={appState.floorPlan.rooms}
+                    selectedRoomId={appState.selectedRoomId}
+                    onRoomSelect={handleRoomSelect}
+                  />
+                  <Divider />
+                  <FurnitureList
+                    furniture={appState.floorPlan.furniture}
+                    selectedRoomId={appState.selectedRoomId}
+                    onRoomSelect={handleRoomSelect}
+                  />
+                </>
+              )}
+              {sidebarTab === 4 && (
+                <>
+                  {selectedRoom ? (
+                    appState.selectedTool === 'edit' ? (
+                      <Box>
+                        <Box
+                          sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                          <IconButton
+                            onClick={() =>
+                              setAppState(prev => ({
+                                ...prev,
+                                selectedTool: 'select',
+                              }))
+                            }
+                            sx={{ mr: 1 }}>
+                            <ChevronLeftIcon />
+                          </IconButton>
+                          <Typography variant="h6">Edit Furniture</Typography>
+                        </Box>
+                        <FurnitureForm
+                          onSubmit={handleUpdateFurniture}
+                          initialValues={selectedRoom}
+                          onDelete={handleDeleteFurniture}
+                          onDuplicate={handleDuplicateFurniture}
+                        />
                       </Box>
-                      <FurnitureForm
-                        onSubmit={handleUpdateFurniture}
-                        initialValues={selectedRoom}
-                        onDelete={handleDeleteFurniture}
-                        onDuplicate={handleDuplicateFurniture}
+                    ) : (
+                      <RoomDetails
+                        room={selectedRoom}
+                        onEdit={() => {
+                          setAppState(prev => ({
+                            ...prev,
+                            selectedTool: 'edit',
+                          }));
+                        }}
                       />
-                    </Box>
+                    )
                   ) : (
-                    <RoomDetails
-                      room={selectedRoom}
-                      onEdit={() => {
-                        setAppState(prev => ({
-                          ...prev,
-                          selectedTool: 'edit',
-                        }));
-                      }}
-                    />
-                  )
-                ) : (
-                  <FurnitureForm onSubmit={handleAddFurniture} />
-                )}
-              </>
-            )}
+                    <FurnitureForm onSubmit={handleAddFurniture} />
+                  )}
+                </>
+              )}
+            </Box>
           </Box>
         </Box>
       </Box>

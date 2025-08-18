@@ -25,6 +25,18 @@ export interface Room {
 
 export interface Furniture extends Room {
   type: string;
+  color?: string; // Custom furniture color (hex format)
+}
+
+export interface FurnitureTemplate {
+  id: string;
+  name: string;
+  type: string;
+  defaultWidth: number;
+  defaultHeight: number;
+  defaultColor: string;
+  category: 'seating' | 'tables' | 'storage' | 'bedroom' | 'other';
+  icon?: string;
 }
 
 export interface FloorPlan {
