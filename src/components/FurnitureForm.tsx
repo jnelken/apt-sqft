@@ -88,7 +88,6 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
       width: totalWidth,
       sqFootage: 0, // Furniture doesn't count towards sq footage
       roomType: 'non-livable', // Furniture is always non-livable
-      isRelative: false,
       type: formData.type,
       x: initialValues?.x || formData.x,
       y: initialValues?.y || formData.y,

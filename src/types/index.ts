@@ -18,9 +18,6 @@ export interface Room {
   points: Point[];
   x: number;
   y: number;
-  isRelative: boolean;
-  relativeTo?: string;
-  relativeRatio?: number;
 }
 
 export interface Furniture extends Room {

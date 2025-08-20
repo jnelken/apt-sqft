@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  FormControlLabel,
-  Switch,
   Typography,
   ToggleButtonGroup,
   ToggleButton,
@@ -34,9 +32,6 @@ export const RoomForm: React.FC<RoomFormProps> = ({
     widthFeet: Math.floor((initialValues?.width || 240) / 12),
     widthInches: (initialValues?.width || 240) % 12,
     roomType: initialValues?.roomType || 'livable',
-    isRelative: initialValues?.isRelative ?? false,
-    relativeTo: initialValues?.relativeTo || '',
-    relativeRatio: initialValues?.relativeRatio || 1,
     x: initialValues?.x || window.innerWidth / 2,
     y: initialValues?.y || window.innerHeight / 2,
   });
@@ -52,9 +47,6 @@ export const RoomForm: React.FC<RoomFormProps> = ({
         widthFeet: Math.floor((initialValues.width || 0) / 12),
         widthInches: (initialValues.width || 0) % 12,
         roomType: initialValues.roomType || 'livable',
-        isRelative: initialValues.isRelative ?? false,
-        relativeTo: initialValues.relativeTo || '',
-        relativeRatio: initialValues.relativeRatio || 1,
         x: initialValues.x || prev.x,
         y: initialValues.y || prev.y,
       }));
@@ -81,9 +73,6 @@ export const RoomForm: React.FC<RoomFormProps> = ({
       width: totalWidth,
       sqFootage: (totalHeight * totalWidth) / 144,
       roomType: formData.roomType,
-      isRelative: formData.isRelative,
-      relativeTo: formData.relativeTo,
-      relativeRatio: formData.relativeRatio,
       x: initialValues?.x || formData.x,
       y: initialValues?.y || formData.y,
     });
@@ -137,7 +126,7 @@ export const RoomForm: React.FC<RoomFormProps> = ({
       <ToggleButtonGroup
         value={formData.roomType}
         exclusive
-        onChange={(e, value) =>
+        onChange={(_, value) =>
           value && setFormData(prev => ({ ...prev, roomType: value }))
         }
         fullWidth
@@ -147,43 +136,6 @@ export const RoomForm: React.FC<RoomFormProps> = ({
         <ToggleButton value="outdoor">Outdoor</ToggleButton>
       </ToggleButtonGroup>
 
-      <FormControlLabel
-        control={
-          <Switch
-            checked={formData.isRelative}
-            onChange={e =>
-              setFormData(prev => ({ ...prev, isRelative: e.target.checked }))
-            }
-          />
-        }
-        label="Relative Size"
-      />
-
-      {formData.isRelative && (
-        <>
-          <CompactTextField
-            label="Relative To Room"
-            value={formData.relativeTo}
-            onChange={e =>
-              setFormData(prev => ({ ...prev, relativeTo: e.target.value }))
-            }
-            required
-          />
-
-          <CompactTextField
-            label="Relative Ratio"
-            type="number"
-            value={formData.relativeRatio}
-            onChange={e =>
-              setFormData(prev => ({
-                ...prev,
-                relativeRatio: Number(e.target.value),
-              }))
-            }
-            required
-          />
-        </>
-      )}
 
       <ActionButtons
         onSubmit={() => {}} // Form handles submit via onSubmit prop
