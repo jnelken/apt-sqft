@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Button,
   FormControlLabel,
   Switch,
   Typography,
   ToggleButtonGroup,
   ToggleButton,
-  Tooltip,
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { Room } from '../types';
 import { CompactTextField } from './ui/CompactTextField';
+import { DimensionSelector } from './ui/DimensionSelector';
+import { ActionButtons } from './ui/ActionButtons';
 
 interface RoomFormProps {
   onSubmit: (room: Omit<Room, 'id' | 'points'>) => void;
@@ -104,85 +102,25 @@ export const RoomForm: React.FC<RoomFormProps> = ({
         required
       />
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, mb: 1 }}>
-        <Typography
-          variant="subtitle2"
-          sx={{
-            'cursor': 'pointer',
-            '&:hover': { textDecoration: 'underline' },
-          }}
-          onClick={handleSwapDimensions}>
-          Height
-        </Typography>
-      </Box>
-      <Box sx={{ display: 'flex', gap: 2 }}>
-        <CompactTextField
-          label="Feet"
-          type="number"
-          value={formData.heightFeet}
-          onChange={e =>
-            setFormData(prev => ({
-              ...prev,
-              heightFeet: Math.max(0, Number(e.target.value)),
-            }))
-          }
-          required
-          sx={{ width: 64, height: 40 }}
-        />
-        <CompactTextField
-          label="Inches"
-          type="number"
-          value={formData.heightInches}
-          onChange={e =>
-            setFormData(prev => ({
-              ...prev,
-              heightInches: Math.max(0, Math.min(11, Number(e.target.value))),
-            }))
-          }
-          required
-          sx={{ width: 64, height: 40 }}
-        />
-      </Box>
-
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, mb: 1 }}>
-        <Typography
-          variant="subtitle2"
-          sx={{
-            'cursor': 'pointer',
-            '&:hover': { textDecoration: 'underline' },
-          }}
-          onClick={handleSwapDimensions}>
-          Width
-        </Typography>
-      </Box>
-      <Box sx={{ display: 'flex', gap: 2 }}>
-        <CompactTextField
-          label="Feet"
-          type="number"
-          value={formData.widthFeet}
-          onChange={e =>
-            setFormData(prev => ({
-              ...prev,
-              widthFeet: Math.max(0, Number(e.target.value)),
-            }))
-          }
-          required
-          sx={{ width: 64, height: 40 }}
-        />
-        <CompactTextField
-          label="Inches"
-          type="number"
-          value={formData.widthInches}
-          onChange={e =>
-            setFormData(prev => ({
-              ...prev,
-              widthInches: Math.max(0, Math.min(11, Number(e.target.value))),
-            }))
-          }
-          required
-          sx={{ width: 64, height: 40 }}
-        />
-      </Box>
+      <DimensionSelector
+        heightFeet={formData.heightFeet}
+        heightInches={formData.heightInches}
+        widthFeet={formData.widthFeet}
+        widthInches={formData.widthInches}
+        onHeightFeetChange={value =>
+          setFormData(prev => ({ ...prev, heightFeet: value }))
+        }
+        onHeightInchesChange={value =>
+          setFormData(prev => ({ ...prev, heightInches: value }))
+        }
+        onWidthFeetChange={value =>
+          setFormData(prev => ({ ...prev, widthFeet: value }))
+        }
+        onWidthInchesChange={value =>
+          setFormData(prev => ({ ...prev, widthInches: value }))
+        }
+        onSwapDimensions={handleSwapDimensions}
+      />
 
       {initialValues && (
         <Typography
@@ -247,43 +185,13 @@ export const RoomForm: React.FC<RoomFormProps> = ({
         </>
       )}
 
-      <Button
-        type="submit"
-        variant="contained"
-        color="primary"
-        fullWidth
-        sx={{ mt: 2 }}>
-        {initialValues ? 'Update' : 'Add Room'}
-      </Button>
-
-      {initialValues && (onDelete || onDuplicate) && (
-        <Box
-          sx={{
-            mt: 'auto',
-            pt: 2,
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: 1,
-          }}>
-          {onDuplicate && (
-            <Button
-              variant="outlined"
-              startIcon={<ContentCopyIcon />}
-              onClick={onDuplicate}>
-              Duplicate
-            </Button>
-          )}
-          {onDelete && (
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<DeleteIcon />}
-              onClick={onDelete}>
-              Delete
-            </Button>
-          )}
-        </Box>
-      )}
+      <ActionButtons
+        onSubmit={() => {}} // Form handles submit via onSubmit prop
+        submitText={initialValues ? 'Update' : 'Add'}
+        showSubmit={true}
+        onDuplicate={onDuplicate}
+        onDelete={onDelete}
+      />
     </Box>
   );
 };
