@@ -21,7 +21,7 @@
   - Add furniture color change handlers to App.tsx
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 4. Update LayoutEditor to render furniture with custom colors
+- [x] 4. Update LayoutEditor to render furniture with custom colors
 
   - Replace hardcoded orange furniture color with dynamic color from furniture.color property
   - Ensure furniture colors work with light/dark themes

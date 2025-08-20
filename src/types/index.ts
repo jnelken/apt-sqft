@@ -42,13 +42,25 @@ export interface FurnitureTemplate {
 export interface FloorPlan {
   name: string;
   rooms: Room[];
-  furniture: Furniture[];
+  furnitureInstances: FurnitureInstance[];
   backgroundImage: string | null;
   imageScale: number;
 }
 
+export interface FurnitureInventory {
+  [furnitureId: string]: Furniture;
+}
+
+export interface FurnitureInstance {
+  furnitureId: string; // Reference to furniture in inventory
+  x: number;
+  y: number;
+  rotation?: number; // For future use
+}
+
 export interface AppState {
   floorPlan: FloorPlan;
+  furnitureInventory: FurnitureInventory;
   selectedRoomId: string | null;
   selectedTool: 'select' | 'move' | 'resize' | 'add-point' | 'edit';
   zoom: number;

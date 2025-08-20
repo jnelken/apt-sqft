@@ -7,9 +7,11 @@ import {
   Select,
   FormControl,
   InputLabel,
+  Tooltip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { Furniture } from '../types';
 import { CompactTextField } from './ui/CompactTextField';
 import { FURNITURE_TEMPLATES } from '../data/furnitureTemplates';
@@ -63,6 +65,16 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
       }));
     }
   }, [initialValues]);
+
+  const handleSwapDimensions = () => {
+    setFormData(prev => ({
+      ...prev,
+      heightFeet: prev.widthFeet,
+      heightInches: prev.widthInches,
+      widthFeet: prev.heightFeet,
+      widthInches: prev.heightInches,
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,9 +145,22 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
         </Select>
       </FormControl>
 
-      <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
-        Height
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, mb: 1 }}>
+        <Typography
+          variant="subtitle2"
+          sx={{
+            'cursor': 'pointer',
+            '&:hover': { textDecoration: 'underline' },
+          }}
+          onClick={handleSwapDimensions}>
+          Height
+        </Typography>
+        <Tooltip title="Click to swap height and width dimensions">
+          <SwapHorizIcon
+            sx={{ fontSize: 16, color: 'text.secondary', cursor: 'pointer' }}
+          />
+        </Tooltip>
+      </Box>
       <Box sx={{ display: 'flex', gap: 2 }}>
         <CompactTextField
           label="Feet"
@@ -148,6 +173,7 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
             }))
           }
           required
+          sx={{ width: 64, height: 40 }}
         />
         <CompactTextField
           label="Inches"
@@ -160,12 +186,26 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
             }))
           }
           required
+          sx={{ width: 64, height: 40 }}
         />
       </Box>
 
-      <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
-        Width
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, mb: 1 }}>
+        <Typography
+          variant="subtitle2"
+          sx={{
+            'cursor': 'pointer',
+            '&:hover': { textDecoration: 'underline' },
+          }}
+          onClick={handleSwapDimensions}>
+          Width
+        </Typography>
+        <Tooltip title="Click to swap height and width dimensions">
+          <SwapHorizIcon
+            sx={{ fontSize: 16, color: 'text.secondary', cursor: 'pointer' }}
+          />
+        </Tooltip>
+      </Box>
       <Box sx={{ display: 'flex', gap: 2 }}>
         <CompactTextField
           label="Feet"
@@ -178,6 +218,7 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
             }))
           }
           required
+          sx={{ width: 64, height: 40 }}
         />
         <CompactTextField
           label="Inches"
@@ -190,6 +231,7 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
             }))
           }
           required
+          sx={{ width: 64, height: 40 }}
         />
       </Box>
 

@@ -1,14 +1,27 @@
 import React from 'react';
-import { Box, Typography, Paper, Button } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Paper,
+  Button,
+  IconButton,
+  Tooltip,
+} from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { Room } from '../types';
 
 interface RoomDetailsProps {
   room: Room | null;
   onEdit?: () => void;
+  onSwapDimensions?: () => void;
 }
 
-export const RoomDetails: React.FC<RoomDetailsProps> = ({ room, onEdit }) => {
+export const RoomDetails: React.FC<RoomDetailsProps> = ({
+  room,
+  onEdit,
+  onSwapDimensions,
+}) => {
   if (!room) {
     return (
       <Box sx={{ p: 2 }}>
@@ -40,6 +53,15 @@ export const RoomDetails: React.FC<RoomDetailsProps> = ({ room, onEdit }) => {
         <Typography variant="body1">
           <strong>Width:</strong> {room.width} inches
         </Typography>
+        {onSwapDimensions && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 1 }}>
+            <Tooltip title="Swap height and width dimensions">
+              <IconButton onClick={onSwapDimensions} size="small">
+                <SwapHorizIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        )}
         <Typography variant="body1">
           <strong>Height:</strong> {room.height} inches
         </Typography>

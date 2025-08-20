@@ -7,6 +7,7 @@ import {
   Typography,
   ToggleButtonGroup,
   ToggleButton,
+  Tooltip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -62,6 +63,16 @@ export const RoomForm: React.FC<RoomFormProps> = ({
     }
   }, [initialValues]);
 
+  const handleSwapDimensions = () => {
+    setFormData(prev => ({
+      ...prev,
+      heightFeet: prev.widthFeet,
+      heightInches: prev.widthInches,
+      widthFeet: prev.heightFeet,
+      widthInches: prev.heightInches,
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const totalHeight = formData.heightFeet * 12 + formData.heightInches;
@@ -83,19 +94,27 @@ export const RoomForm: React.FC<RoomFormProps> = ({
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ p: 2 }}>
       <Typography variant="h6" gutterBottom>
-        {initialValues ? 'Edit Room' : 'Add New Room'}
+        {initialValues ? 'Edit Room' : 'Add Room'}
       </Typography>
 
       <CompactTextField
-        label="Room Name"
+        label="Name"
         value={formData.name}
         onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
         required
       />
 
-      <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
-        Height
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, mb: 1 }}>
+        <Typography
+          variant="subtitle2"
+          sx={{
+            'cursor': 'pointer',
+            '&:hover': { textDecoration: 'underline' },
+          }}
+          onClick={handleSwapDimensions}>
+          Height
+        </Typography>
+      </Box>
       <Box sx={{ display: 'flex', gap: 2 }}>
         <CompactTextField
           label="Feet"
@@ -108,6 +127,7 @@ export const RoomForm: React.FC<RoomFormProps> = ({
             }))
           }
           required
+          sx={{ width: 64, height: 40 }}
         />
         <CompactTextField
           label="Inches"
@@ -120,12 +140,21 @@ export const RoomForm: React.FC<RoomFormProps> = ({
             }))
           }
           required
+          sx={{ width: 64, height: 40 }}
         />
       </Box>
 
-      <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
-        Width
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, mb: 1 }}>
+        <Typography
+          variant="subtitle2"
+          sx={{
+            'cursor': 'pointer',
+            '&:hover': { textDecoration: 'underline' },
+          }}
+          onClick={handleSwapDimensions}>
+          Width
+        </Typography>
+      </Box>
       <Box sx={{ display: 'flex', gap: 2 }}>
         <CompactTextField
           label="Feet"
@@ -138,6 +167,7 @@ export const RoomForm: React.FC<RoomFormProps> = ({
             }))
           }
           required
+          sx={{ width: 64, height: 40 }}
         />
         <CompactTextField
           label="Inches"
@@ -150,6 +180,7 @@ export const RoomForm: React.FC<RoomFormProps> = ({
             }))
           }
           required
+          sx={{ width: 64, height: 40 }}
         />
       </Box>
 

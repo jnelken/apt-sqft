@@ -4,15 +4,11 @@ import { Box, Typography, Slider, Tooltip } from '@mui/material';
 interface GridSettingsProps {
   gridSize: number;
   onGridSizeChange: (size: number) => void;
-  gridOpacity: number;
-  onGridOpacityChange: (opacity: number) => void;
 }
 
 export const GridSettings: React.FC<GridSettingsProps> = ({
   gridSize,
   onGridSizeChange,
-  gridOpacity,
-  onGridOpacityChange,
 }) => {
   const handleChange = (newValue: number | number[]) => {
     const value = newValue as number;
@@ -46,7 +42,7 @@ export const GridSettings: React.FC<GridSettingsProps> = ({
   const gridSizeLabel = gridSize > 12 ? `${gridSize % 12}ft` : `${gridSize}in`;
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 300 }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 200 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Tooltip title="Adjust the grid size to change the spacing between grid lines">
           <Typography
@@ -65,23 +61,6 @@ export const GridSettings: React.FC<GridSettingsProps> = ({
           min={1}
           marks={marks}
           max={144}
-          sx={{ width: 120 }}
-        />
-      </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Tooltip title="Adjust the grid opacity">
-          <Typography id="grid-opacity-slider" sx={{ minWidth: 100 }}>
-            Opacity: {Math.round(gridOpacity * 100)}%
-          </Typography>
-        </Tooltip>
-        <Slider
-          value={gridOpacity}
-          onChange={(_event, value) => onGridOpacityChange(value as number)}
-          aria-labelledby="grid-opacity-slider"
-          valueLabelDisplay="auto"
-          step={0.1}
-          min={0}
-          max={1}
           sx={{ width: 120 }}
         />
       </Box>

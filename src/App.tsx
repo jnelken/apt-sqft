@@ -25,7 +25,14 @@ import { ZoomControls } from './components/ZoomControls';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { FloorPlanName } from './components/FloorPlanName';
 import { FloorPlanDetails } from './components/FloorPlanDetails';
-import { AppState, Room, FloorPlan, Furniture } from './types';
+import {
+  AppState,
+  Room,
+  FloorPlan,
+  Furniture,
+  FurnitureInventory,
+  FurnitureInstance,
+} from './types';
 import { ColorSettings } from './components/ColorSettings';
 import { FloorPlanTabs } from './components/FloorPlanTabs';
 import { Typography } from '@mui/material';
@@ -34,6 +41,7 @@ import { FurnitureList } from './components/FurnitureList';
 import { Divider } from '@mui/material';
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
+import { Settings } from './components/Settings';
 
 const INIT_GRID_SIZE = 12;
 // Maximum number of history entries to prevent session storage overflow
@@ -55,13 +63,14 @@ const getSessionStorageSize = () => {
 const initialFloorPlan = {
   name: 'Untitled',
   rooms: [],
-  furniture: [],
+  furnitureInstances: [],
   backgroundImage: null,
   imageScale: 1,
 };
 
 const initialAppState: AppState = {
   floorPlan: initialFloorPlan,
+  furnitureInventory: {},
   selectedRoomId: null,
   selectedTool: 'select',
   zoom: 1,
@@ -72,6 +81,24 @@ const initialAppState: AppState = {
   gridOpacity: 0.2,
   history: [initialFloorPlan],
   historyIndex: 0,
+};
+
+// Helper function to get furniture objects from instances
+const getFurnitureFromInstances = (
+  instances: FurnitureInstance[],
+  inventory: FurnitureInventory,
+): Furniture[] => {
+  return instances
+    .map(instance => {
+      const furniture = inventory[instance.furnitureId];
+      if (!furniture) return null;
+      return {
+        ...furniture,
+        x: instance.x,
+        y: instance.y,
+      };
+    })
+    .filter((furniture): furniture is Furniture => furniture !== null);
 };
 
 function App() {
@@ -156,61 +183,7 @@ function App() {
   const [sidebarTab, setSidebarTab] = useState(0);
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
 
-  // Migration: Add default colors to existing furniture that doesn't have them
-  useEffect(() => {
-    let needsFloorPlansMigration = false;
-    let needsAppStateMigration = false;
-
-    // Check if any floor plans need migration
-    const migratedFloorPlans = Object.keys(floorPlans).reduce((acc, key) => {
-      const floorPlan = floorPlans[key];
-      const furnitureNeedsMigration = floorPlan.furniture.some(
-        furniture => !furniture.color,
-      );
-
-      if (furnitureNeedsMigration) {
-        needsFloorPlansMigration = true;
-        acc[key] = {
-          ...floorPlan,
-          furniture: floorPlan.furniture.map(furniture => ({
-            ...furniture,
-            color: furniture.color || '#D2691E', // Default warm brown color
-          })),
-        };
-      } else {
-        acc[key] = floorPlan;
-      }
-      return acc;
-    }, {} as { [key: string]: FloorPlan });
-
-    // Check if current app state needs migration
-    const currentFurnitureNeedsMigration = appState.floorPlan.furniture.some(
-      furniture => !furniture.color,
-    );
-    let migratedAppState = appState;
-
-    if (currentFurnitureNeedsMigration) {
-      needsAppStateMigration = true;
-      migratedAppState = {
-        ...appState,
-        floorPlan: {
-          ...appState.floorPlan,
-          furniture: appState.floorPlan.furniture.map(furniture => ({
-            ...furniture,
-            color: furniture.color || '#D2691E', // Default warm brown color
-          })),
-        },
-      };
-    }
-
-    // Apply migrations if needed
-    if (needsFloorPlansMigration) {
-      setFloorPlans(migratedFloorPlans);
-    }
-    if (needsAppStateMigration) {
-      setAppState(migratedAppState);
-    }
-  }, []); // Run only once on mount
+  // No migration needed - we'll simply ignore any legacy furniture not in inventory
 
   // Save floor plans and current name to localStorage
   useEffect(() => {
@@ -486,9 +459,19 @@ function App() {
   const selectedRoom = appState.floorPlan.rooms.find(
     room => room.id === appState.selectedRoomId,
   );
-  const selectedFurniture = appState.floorPlan.furniture.find(
-    item => item.id === appState.selectedRoomId,
-  );
+  const selectedFurniture = (() => {
+    if (!appState.selectedRoomId) return undefined;
+    const instance = appState.floorPlan.furnitureInstances.find(
+      inst => inst.furnitureId === appState.selectedRoomId,
+    );
+    const furniture = appState.furnitureInventory[appState.selectedRoomId];
+    if (!instance || !furniture) return undefined;
+    return {
+      ...furniture,
+      x: instance.x,
+      y: instance.y,
+    };
+  })();
 
   const handleRoomSelect = (roomId: string | null) => {
     setAppState(prev => ({ ...prev, selectedRoomId: roomId }));
@@ -505,8 +488,8 @@ function App() {
   ) => {
     // Check if the item is a room or furniture
     const isRoom = appState.floorPlan.rooms.some(room => room.id === roomId);
-    const isFurniture = appState.floorPlan.furniture.some(
-      item => item.id === roomId,
+    const isFurniture = appState.floorPlan.furnitureInstances.some(
+      instance => instance.furnitureId === roomId,
     );
 
     const newFloorPlan = { ...appState.floorPlan };
@@ -522,14 +505,15 @@ function App() {
           : room,
       );
     } else if (isFurniture) {
-      newFloorPlan.furniture = newFloorPlan.furniture.map(item =>
-        item.id === roomId
-          ? {
-              ...item,
-              x,
-              y,
-            }
-          : item,
+      newFloorPlan.furnitureInstances = newFloorPlan.furnitureInstances.map(
+        instance =>
+          instance.furnitureId === roomId
+            ? {
+                ...instance,
+                x,
+                y,
+              }
+            : instance,
       );
     }
 
@@ -553,7 +537,9 @@ function App() {
   ) => {
     const newFloorPlan = { ...appState.floorPlan };
     const isRoom = newFloorPlan.rooms.some(room => room.id === roomId);
-    const isFurniture = newFloorPlan.furniture.some(item => item.id === roomId);
+    const isFurniture = newFloorPlan.furnitureInstances.some(
+      instance => instance.furnitureId === roomId,
+    );
 
     if (isRoom) {
       newFloorPlan.rooms = newFloorPlan.rooms.map(room =>
@@ -566,15 +552,20 @@ function App() {
           : room,
       );
     } else if (isFurniture) {
-      newFloorPlan.furniture = newFloorPlan.furniture.map(item =>
-        item.id === roomId
-          ? {
-              ...item,
-              width,
-              height,
-            }
-          : item,
-      );
+      // Update furniture in inventory
+      const updatedInventory = {
+        ...appState.furnitureInventory,
+        [roomId]: {
+          ...appState.furnitureInventory[roomId],
+          width,
+          height,
+        },
+      };
+
+      setAppState(prev => ({
+        ...prev,
+        furnitureInventory: updatedInventory,
+      }));
     }
 
     // Only push to history if we're not resizing (i.e., this is the final size)
@@ -702,16 +693,41 @@ function App() {
   const handleAddFurniture = (
     furnitureData: Omit<Furniture, 'id' | 'points'>,
   ) => {
+    const furnitureId = Date.now().toString();
     const newFurniture: Furniture = {
       ...furnitureData,
-      id: Date.now().toString(),
+      id: furnitureId,
       points: [],
+      x: 0, // Reset position for inventory
+      y: 0,
+    };
+
+    // Add to global inventory
+    const updatedInventory = {
+      ...appState.furnitureInventory,
+      [furnitureId]: newFurniture,
+    };
+
+    // Create instance in current floor plan
+    const newInstance: FurnitureInstance = {
+      furnitureId,
+      x: furnitureData.x,
+      y: furnitureData.y,
     };
 
     const newFloorPlan = {
       ...appState.floorPlan,
-      furniture: [...appState.floorPlan.furniture, newFurniture],
+      furnitureInstances: [
+        ...appState.floorPlan.furnitureInstances,
+        newInstance,
+      ],
     };
+
+    setAppState(prev => ({
+      ...prev,
+      furnitureInventory: updatedInventory,
+      floorPlan: newFloorPlan,
+    }));
 
     pushToHistory(newFloorPlan);
   };
@@ -721,17 +737,41 @@ function App() {
   ) => {
     if (!appState.selectedRoomId) return;
 
+    // Update the furniture in the global inventory
+    const updatedInventory = {
+      ...appState.furnitureInventory,
+      [appState.selectedRoomId]: {
+        ...appState.furnitureInventory[appState.selectedRoomId],
+        ...furnitureData,
+        id: appState.selectedRoomId,
+        points: [],
+        x: 0, // Keep inventory position at 0,0
+        y: 0,
+      },
+    };
+
+    // Update the instance position if x,y changed
+    const updatedInstances = appState.floorPlan.furnitureInstances.map(
+      instance =>
+        instance.furnitureId === appState.selectedRoomId
+          ? {
+              ...instance,
+              x: furnitureData.x,
+              y: furnitureData.y,
+            }
+          : instance,
+    );
+
     const newFloorPlan = {
       ...appState.floorPlan,
-      furniture: appState.floorPlan.furniture.map(furniture =>
-        furniture.id === appState.selectedRoomId
-          ? {
-              ...furniture,
-              ...furnitureData,
-            }
-          : furniture,
-      ),
+      furnitureInstances: updatedInstances,
     };
+
+    setAppState(prev => ({
+      ...prev,
+      furnitureInventory: updatedInventory,
+      floorPlan: newFloorPlan,
+    }));
 
     pushToHistory(newFloorPlan);
   };
@@ -739,41 +779,112 @@ function App() {
   const handleDeleteFurniture = () => {
     if (!appState.selectedRoomId) return;
 
+    // Remove the instance from current floor plan (but keep in inventory for reuse)
     const newFloorPlan = {
       ...appState.floorPlan,
-      furniture: appState.floorPlan.furniture.filter(
-        furniture => furniture.id !== appState.selectedRoomId,
+      furnitureInstances: appState.floorPlan.furnitureInstances.filter(
+        instance => instance.furnitureId !== appState.selectedRoomId,
       ),
     };
 
     pushToHistory(newFloorPlan);
-    setAppState(prev => ({ ...prev, selectedRoomId: null }));
+    setAppState(prev => ({
+      ...prev,
+      selectedRoomId: null,
+      floorPlan: newFloorPlan,
+    }));
     setSidebarTab(4); // Switch to Add Furniture tab after deletion
   };
 
   const handleDuplicateFurniture = () => {
     if (!appState.selectedRoomId) return;
-    const furnitureToClone = appState.floorPlan.furniture.find(
-      furniture => furniture.id === appState.selectedRoomId,
-    );
-    if (!furnitureToClone) return;
 
-    const newFurniture: Furniture = {
-      ...furnitureToClone,
-      id: Date.now().toString(),
-      name: `${furnitureToClone.name} (Copy)`,
-      x: furnitureToClone.x + 50,
-      y: furnitureToClone.y + 50,
-      points: [],
+    // Find the current instance and furniture
+    const currentInstance = appState.floorPlan.furnitureInstances.find(
+      instance => instance.furnitureId === appState.selectedRoomId,
+    );
+    const furnitureToClone =
+      appState.furnitureInventory[appState.selectedRoomId];
+
+    if (!currentInstance || !furnitureToClone) return;
+
+    // Create new instance (reusing the same furniture from inventory)
+    const newInstance: FurnitureInstance = {
+      furnitureId: appState.selectedRoomId, // Reuse same furniture
+      x: currentInstance.x + 50,
+      y: currentInstance.y + 50,
     };
 
     const newFloorPlan = {
       ...appState.floorPlan,
-      furniture: [...appState.floorPlan.furniture, newFurniture],
+      furnitureInstances: [
+        ...appState.floorPlan.furnitureInstances,
+        newInstance,
+      ],
     };
 
     pushToHistory(newFloorPlan);
-    setAppState(prev => ({ ...prev, selectedRoomId: newFurniture.id }));
+    setAppState(prev => ({
+      ...prev,
+      floorPlan: newFloorPlan,
+      // Note: We can't select the new instance since it has the same furnitureId
+      // This is a limitation of the current selection system
+    }));
+  };
+
+  const handleSwapDimensions = () => {
+    if (appState.selectedRoomId) {
+      const selectedRoom = appState.floorPlan.rooms.find(
+        room => room.id === appState.selectedRoomId,
+      );
+      const selectedFurniture = (() => {
+        if (!appState.selectedRoomId) return undefined;
+        const instance = appState.floorPlan.furnitureInstances.find(
+          inst => inst.furnitureId === appState.selectedRoomId,
+        );
+        const furniture = appState.furnitureInventory[appState.selectedRoomId];
+        if (!instance || !furniture) return undefined;
+        return {
+          ...furniture,
+          x: instance.x,
+          y: instance.y,
+        };
+      })();
+
+      if (selectedRoom) {
+        const newRoom = {
+          ...selectedRoom,
+          height: selectedRoom.width,
+          width: selectedRoom.height,
+          sqFootage: (selectedRoom.width * selectedRoom.height) / 144,
+        };
+        const newFloorPlan = {
+          ...appState.floorPlan,
+          rooms: appState.floorPlan.rooms.map(room =>
+            room.id === appState.selectedRoomId ? newRoom : room,
+          ),
+        };
+        pushToHistory(newFloorPlan);
+      } else if (selectedFurniture) {
+        // Update furniture in inventory
+        const updatedInventory = {
+          ...appState.furnitureInventory,
+          [appState.selectedRoomId]: {
+            ...appState.furnitureInventory[appState.selectedRoomId],
+            height: selectedFurniture.width,
+            width: selectedFurniture.height,
+          },
+        };
+
+        setAppState(prev => ({
+          ...prev,
+          furnitureInventory: updatedInventory,
+        }));
+
+        const newFloorPlan = appState.floorPlan; // No change to floor plan needed
+        pushToHistory(newFloorPlan);
+      }
+    }
   };
 
   const handleDeleteSelected = () => {
@@ -826,8 +937,6 @@ function App() {
             <GridSettings
               gridSize={appState.gridSize}
               onGridSizeChange={handleGridSizeChange}
-              gridOpacity={appState.gridOpacity}
-              onGridOpacityChange={handleGridOpacityChange}
             />
             <Box sx={{ width: 16 }} />
             <ColorSettings
@@ -870,6 +979,11 @@ function App() {
               onImageScaleChange={handleImageScaleChange}
             />
             <Box sx={{ width: 16 }} />
+            <Settings
+              gridOpacity={appState.gridOpacity}
+              onGridOpacityChange={handleGridOpacityChange}
+            />
+            <Box sx={{ width: 16 }} />
             <ThemeSwitcher
               theme={appState.theme}
               onThemeChange={handleThemeChange}
@@ -906,7 +1020,10 @@ function App() {
           <Box sx={{ flexGrow: 1, position: 'relative' }}>
             <LayoutEditor
               rooms={appState.floorPlan.rooms}
-              furniture={appState.floorPlan.furniture}
+              furniture={getFurnitureFromInstances(
+                appState.floorPlan.furnitureInstances || [],
+                appState.furnitureInventory,
+              )}
               selectedRoomId={appState.selectedRoomId}
               onRoomSelect={handleRoomSelect}
               onRoomMove={handleRoomMove}
@@ -996,6 +1113,7 @@ function App() {
                             selectedTool: 'edit',
                           }));
                         }}
+                        onSwapDimensions={handleSwapDimensions}
                       />
                     )
                   ) : selectedFurniture ? (
@@ -1031,6 +1149,7 @@ function App() {
                             selectedTool: 'edit',
                           }));
                         }}
+                        onSwapDimensions={handleSwapDimensions}
                       />
                     )
                   ) : (
@@ -1050,7 +1169,10 @@ function App() {
                   />
                   <Divider />
                   <FurnitureList
-                    furniture={appState.floorPlan.furniture}
+                    furniture={getFurnitureFromInstances(
+                      appState.floorPlan.furnitureInstances || [],
+                      appState.furnitureInventory,
+                    )}
                     selectedRoomId={appState.selectedRoomId}
                     onRoomSelect={handleRoomSelect}
                   />
@@ -1091,6 +1213,7 @@ function App() {
                             selectedTool: 'edit',
                           }));
                         }}
+                        onSwapDimensions={handleSwapDimensions}
                       />
                     )
                   ) : (

@@ -73,34 +73,44 @@ const RoomElement = styled('div')<{
   isSelected: boolean;
   highlightColor: string;
   isFurniture?: boolean;
-}>(({ isLivable, wallColor, isSelected, highlightColor, isFurniture }) => ({
-  'position': 'absolute',
-  'border': `2px solid ${wallColor}`,
-  'backgroundColor': isSelected
-    ? highlightColor
-    : isFurniture
-    ? '#FFA500'
-    : isLivable
-    ? 'transparent'
-    : 'rgba(0, 0, 0, 0.5)',
-  'backgroundImage':
-    !isLivable && !isSelected && !isFurniture
-      ? `repeating-linear-gradient(
+  furnitureColor?: string;
+}>(
+  ({
+    isLivable,
+    wallColor,
+    isSelected,
+    highlightColor,
+    isFurniture,
+    furnitureColor,
+  }) => ({
+    'position': 'absolute',
+    'border': `2px solid ${wallColor}`,
+    'backgroundColor': isSelected
+      ? highlightColor
+      : isFurniture
+      ? furnitureColor || '#FFA500'
+      : isLivable
+      ? 'transparent'
+      : 'rgba(0, 0, 0, 0.5)',
+    'backgroundImage':
+      !isLivable && !isSelected && !isFurniture
+        ? `repeating-linear-gradient(
         45deg,
         rgba(0, 0, 0, 0.5),
         rgba(0, 0, 0, 0.5) 10px,
         rgba(0, 0, 0, 0.3) 10px,
         rgba(0, 0, 0, 0.3) 20px
       )`
-      : 'none',
-  'cursor': 'move',
-  'opacity': isFurniture ? 1 : 0.5,
+        : 'none',
+    'cursor': 'move',
+    'opacity': isFurniture ? 1 : 0.5,
 
-  '&:hover': {
-    borderColor: wallColor,
-    opacity: isFurniture ? 1 : 0.6,
-  },
-}));
+    '&:hover': {
+      borderColor: wallColor,
+      opacity: isFurniture ? 1 : 0.6,
+    },
+  }),
+);
 
 const ResizeHandle = styled('div')<{ position: string }>(({ position }) => ({
   position: 'absolute',
@@ -459,6 +469,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
             isSelected={selectedRoomId === item.id}
             highlightColor={highlightColor}
             isFurniture={true}
+            furnitureColor={item.color}
             style={{
               left: `${item.x}em`,
               top: `${item.y}em`,

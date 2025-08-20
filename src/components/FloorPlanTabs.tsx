@@ -24,6 +24,11 @@ export const FloorPlanTabs: React.FC<FloorPlanTabsProps> = ({
         display: 'flex',
         alignItems: 'center',
       }}>
+      <Tooltip title="New Floor Plan">
+        <IconButton onClick={onNewFloorPlan} size="small" sx={{ mr: 1 }}>
+          <AddIcon />
+        </IconButton>
+      </Tooltip>
       <Tabs
         value={currentFloorPlanName}
         onChange={(_e, newValue) => onFloorPlanSelect(newValue)}
@@ -39,11 +44,6 @@ export const FloorPlanTabs: React.FC<FloorPlanTabsProps> = ({
           />
         ))}
       </Tabs>
-      <Tooltip title="New Floor Plan">
-        <IconButton onClick={onNewFloorPlan} size="small" sx={{ mr: 1 }}>
-          <AddIcon />
-        </IconButton>
-      </Tooltip>
     </Box>
   );
 };
