@@ -12,6 +12,7 @@ import { CompactTextField } from './ui/CompactTextField';
 import { FURNITURE_TEMPLATES } from '../data/furnitureTemplates';
 import { DimensionSelector, DimensionValues } from './ui/DimensionSelector';
 import { ActionButtons } from './ui/ActionButtons';
+import { formatInitialDimensions } from '../lib/utils/formatInitialDimensions';
 
 interface FurnitureFormProps {
   onSubmit: (furniture: Omit<Furniture, 'id' | 'points'>) => void;
@@ -52,10 +53,7 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
       setFormData(prev => ({
         ...prev,
         name: initialValues.name || prev.name,
-        heightFeet: Math.floor((initialValues.height || 0) / 12),
-        heightInches: (initialValues.height || 0) % 12,
-        widthFeet: Math.floor((initialValues.width || 0) / 12),
-        widthInches: (initialValues.width || 0) % 12,
+        ...formatInitialDimensions(initialValues.height, initialValues.width),
         type: initialValues.type || 'Other',
         x: initialValues.x || prev.x,
         y: initialValues.y || prev.y,
