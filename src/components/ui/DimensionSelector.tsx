@@ -1,30 +1,45 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
 import { CompactTextField } from './CompactTextField';
 
-interface DimensionSelectorProps {
+export interface DimensionValues {
   heightFeet: number;
   heightInches: number;
   widthFeet: number;
   widthInches: number;
-  onHeightFeetChange: (value: number) => void;
-  onHeightInchesChange: (value: number) => void;
-  onWidthFeetChange: (value: number) => void;
-  onWidthInchesChange: (value: number) => void;
-  onSwapDimensions: () => void;
+}
+
+interface DimensionSelectorProps {
+  initialValues: DimensionValues;
+  onChange: (dimensions: DimensionValues) => void;
 }
 
 export const DimensionSelector: React.FC<DimensionSelectorProps> = ({
-  heightFeet,
-  heightInches,
-  widthFeet,
-  widthInches,
-  onHeightFeetChange,
-  onHeightInchesChange,
-  onWidthFeetChange,
-  onWidthInchesChange,
-  onSwapDimensions,
+  initialValues,
+  onChange,
 }) => {
+  const [dimensions, setDimensions] = useState<DimensionValues>(initialValues);
+
+  useEffect(() => {
+    setDimensions(initialValues);
+  }, [initialValues]);
+
+  const updateDimension = (key: keyof DimensionValues, value: number) => {
+    const newDimensions = { ...dimensions, [key]: value };
+    setDimensions(newDimensions);
+    onChange(newDimensions);
+  };
+
+  const handleSwapDimensions = () => {
+    const newDimensions: DimensionValues = {
+      heightFeet: dimensions.widthFeet,
+      heightInches: dimensions.widthInches,
+      widthFeet: dimensions.heightFeet,
+      widthInches: dimensions.heightInches,
+    };
+    setDimensions(newDimensions);
+    onChange(newDimensions);
+  };
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, mb: 1 }}>
@@ -34,7 +49,7 @@ export const DimensionSelector: React.FC<DimensionSelectorProps> = ({
             'cursor': 'pointer',
             '&:hover': { textDecoration: 'underline' },
           }}
-          onClick={onSwapDimensions}>
+          onClick={handleSwapDimensions}>
           Height
         </Typography>
       </Box>
@@ -42,9 +57,9 @@ export const DimensionSelector: React.FC<DimensionSelectorProps> = ({
         <CompactTextField
           label="Feet"
           type="number"
-          value={heightFeet}
+          value={dimensions.heightFeet}
           onChange={e =>
-            onHeightFeetChange(Math.max(0, Number(e.target.value)))
+            updateDimension('heightFeet', Math.max(0, Number(e.target.value)))
           }
           required
           sx={{ width: 64, height: 40 }}
@@ -52,9 +67,10 @@ export const DimensionSelector: React.FC<DimensionSelectorProps> = ({
         <CompactTextField
           label="Inches"
           type="number"
-          value={heightInches}
+          value={dimensions.heightInches}
           onChange={e =>
-            onHeightInchesChange(
+            updateDimension(
+              'heightInches',
               Math.max(0, Math.min(11, Number(e.target.value))),
             )
           }
@@ -70,7 +86,7 @@ export const DimensionSelector: React.FC<DimensionSelectorProps> = ({
             'cursor': 'pointer',
             '&:hover': { textDecoration: 'underline' },
           }}
-          onClick={onSwapDimensions}>
+          onClick={handleSwapDimensions}>
           Width
         </Typography>
       </Box>
@@ -78,17 +94,18 @@ export const DimensionSelector: React.FC<DimensionSelectorProps> = ({
         <CompactTextField
           label="Feet"
           type="number"
-          value={widthFeet}
-          onChange={e => onWidthFeetChange(Math.max(0, Number(e.target.value)))}
+          value={dimensions.widthFeet}
+          onChange={e => updateDimension('widthFeet', Math.max(0, Number(e.target.value)))}
           required
           sx={{ width: 64, height: 40 }}
         />
         <CompactTextField
           label="Inches"
           type="number"
-          value={widthInches}
+          value={dimensions.widthInches}
           onChange={e =>
-            onWidthInchesChange(
+            updateDimension(
+              'widthInches',
               Math.max(0, Math.min(11, Number(e.target.value))),
             )
           }

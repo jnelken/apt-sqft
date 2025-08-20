@@ -10,7 +10,7 @@ import {
 import { Furniture } from '../types';
 import { CompactTextField } from './ui/CompactTextField';
 import { FURNITURE_TEMPLATES } from '../data/furnitureTemplates';
-import { DimensionSelector } from './ui/DimensionSelector';
+import { DimensionSelector, DimensionValues } from './ui/DimensionSelector';
 import { ActionButtons } from './ui/ActionButtons';
 
 interface FurnitureFormProps {
@@ -63,15 +63,6 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
     }
   }, [initialValues]);
 
-  const handleSwapDimensions = () => {
-    setFormData(prev => ({
-      ...prev,
-      heightFeet: prev.widthFeet,
-      heightInches: prev.widthInches,
-      widthFeet: prev.heightFeet,
-      widthInches: prev.heightInches,
-    }));
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,23 +133,15 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
       </FormControl>
 
       <DimensionSelector
-        heightFeet={formData.heightFeet}
-        heightInches={formData.heightInches}
-        widthFeet={formData.widthFeet}
-        widthInches={formData.widthInches}
-        onHeightFeetChange={value =>
-          setFormData(prev => ({ ...prev, heightFeet: value }))
+        initialValues={{
+          heightFeet: formData.heightFeet,
+          heightInches: formData.heightInches,
+          widthFeet: formData.widthFeet,
+          widthInches: formData.widthInches,
+        }}
+        onChange={(dimensions: DimensionValues) =>
+          setFormData(prev => ({ ...prev, ...dimensions }))
         }
-        onHeightInchesChange={value =>
-          setFormData(prev => ({ ...prev, heightInches: value }))
-        }
-        onWidthFeetChange={value =>
-          setFormData(prev => ({ ...prev, widthFeet: value }))
-        }
-        onWidthInchesChange={value =>
-          setFormData(prev => ({ ...prev, widthInches: value }))
-        }
-        onSwapDimensions={handleSwapDimensions}
       />
 
       {initialValues && (

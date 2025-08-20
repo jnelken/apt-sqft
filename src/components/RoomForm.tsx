@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import { Room } from '../types';
 import { CompactTextField } from './ui/CompactTextField';
-import { DimensionSelector } from './ui/DimensionSelector';
+import { DimensionSelector, DimensionValues } from './ui/DimensionSelector';
 import { ActionButtons } from './ui/ActionButtons';
 
 interface RoomFormProps {
@@ -53,15 +53,6 @@ export const RoomForm: React.FC<RoomFormProps> = ({
     }
   }, [initialValues]);
 
-  const handleSwapDimensions = () => {
-    setFormData(prev => ({
-      ...prev,
-      heightFeet: prev.widthFeet,
-      heightInches: prev.widthInches,
-      widthFeet: prev.heightFeet,
-      widthInches: prev.heightInches,
-    }));
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,23 +83,15 @@ export const RoomForm: React.FC<RoomFormProps> = ({
       />
 
       <DimensionSelector
-        heightFeet={formData.heightFeet}
-        heightInches={formData.heightInches}
-        widthFeet={formData.widthFeet}
-        widthInches={formData.widthInches}
-        onHeightFeetChange={value =>
-          setFormData(prev => ({ ...prev, heightFeet: value }))
+        initialValues={{
+          heightFeet: formData.heightFeet,
+          heightInches: formData.heightInches,
+          widthFeet: formData.widthFeet,
+          widthInches: formData.widthInches,
+        }}
+        onChange={(dimensions: DimensionValues) =>
+          setFormData(prev => ({ ...prev, ...dimensions }))
         }
-        onHeightInchesChange={value =>
-          setFormData(prev => ({ ...prev, heightInches: value }))
-        }
-        onWidthFeetChange={value =>
-          setFormData(prev => ({ ...prev, widthFeet: value }))
-        }
-        onWidthInchesChange={value =>
-          setFormData(prev => ({ ...prev, widthInches: value }))
-        }
-        onSwapDimensions={handleSwapDimensions}
       />
 
       {initialValues && (
