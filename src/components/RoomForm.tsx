@@ -37,7 +37,6 @@ export const RoomForm: React.FC<RoomFormProps> = ({
     y: initialValues?.y || window.innerHeight / 2,
   });
 
-  // Update form data when initialValues change
   useEffect(() => {
     if (initialValues) {
       setFormData(prev => ({
@@ -50,7 +49,6 @@ export const RoomForm: React.FC<RoomFormProps> = ({
       }));
     }
   }, [initialValues]);
-
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,7 +114,6 @@ export const RoomForm: React.FC<RoomFormProps> = ({
         <ToggleButton value="non-livable">Non-Livable</ToggleButton>
         <ToggleButton value="outdoor">Outdoor</ToggleButton>
       </ToggleButtonGroup>
-
 
       <ActionButtons
         onSubmit={() => {}} // Form handles submit via onSubmit prop

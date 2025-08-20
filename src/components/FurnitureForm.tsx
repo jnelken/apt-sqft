@@ -47,7 +47,6 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
     y: initialValues?.y || window.innerHeight / 2,
   });
 
-  // Update form data when initialValues change
   useEffect(() => {
     if (initialValues) {
       setFormData(prev => ({
@@ -60,7 +59,6 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
       }));
     }
   }, [initialValues]);
-
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
