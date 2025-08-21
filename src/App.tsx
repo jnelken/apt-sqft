@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -15,16 +17,16 @@ import ChairIcon from '@mui/icons-material/Chair';
 import IconButton from '@mui/material/IconButton';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { LayoutEditor } from './components/LayoutEditor';
-import { RoomForm } from './components/RoomForm';
-import { RoomDetails } from './components/RoomDetails';
-import { RoomList } from './components/RoomList';
-import { GridSettings } from './components/GridSettings';
-import { ImageSettings } from './components/ImageSettings';
-import { ZoomControls } from './components/ZoomControls';
-import { ThemeSwitcher } from './components/ThemeSwitcher';
-import { FloorPlanName } from './components/FloorPlanName';
-import { FloorPlanDetails } from './components/FloorPlanDetails';
+import { LayoutEditor } from '@/components/LayoutEditor';
+import { RoomForm } from '@/components/RoomForm';
+import { RoomDetails } from '@/components/RoomDetails';
+import { RoomList } from '@/components/RoomList';
+import { GridSettings } from '@/components/GridSettings';
+import { ImageSettings } from '@/components/ImageSettings';
+import { ZoomControls } from '@/components/ZoomControls';
+import { ThemeSwitcher } from '@/components/ThemeSwitcher';
+import { FloorPlanName } from '@/components/FloorPlanName';
+import { FloorPlanDetails } from '@/components/FloorPlanDetails';
 import {
   AppState,
   Room,
@@ -32,16 +34,16 @@ import {
   Furniture,
   FurnitureInventory,
   FurnitureInstance,
-} from './lib/types';
-import { ColorSettings } from './components/ColorSettings';
-import { FloorPlanTabs } from './components/FloorPlanTabs';
+} from '@/lib/types';
+import { ColorSettings } from '@/components/ColorSettings';
+import { FloorPlanTabs } from '@/components/FloorPlanTabs';
 import { Typography } from '@mui/material';
-import { FurnitureForm } from './components/FurnitureForm';
-import { FurnitureList } from './components/FurnitureList';
+import { FurnitureForm } from '@/components/FurnitureForm';
+import { FurnitureList } from '@/components/FurnitureList';
 import { Divider } from '@mui/material';
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
-import { Settings } from './components/Settings';
+import { Settings } from '@/components/Settings';
 
 const INIT_GRID_SIZE = 12;
 // Maximum number of history entries to prevent session storage overflow

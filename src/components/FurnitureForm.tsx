@@ -1,12 +1,12 @@
 import React from 'react';
 import { MenuItem, Select, FormControl, InputLabel } from '@mui/material';
-import { Furniture } from '../lib/types';
+import { Furniture } from '@/lib/types';
 import {
   FURNITURE_TEMPLATES,
   FURNITURE_TYPES,
-} from '../lib/constants/furniture.constants';
+} from '@/lib/constants/furniture.constants';
 import { BaseForm, BaseFormData } from './BaseForm';
-import { formatInitialDimensions } from '../lib/utils/formatInitialDimensions';
+import { formatInitialDimensions } from '@/lib/utils/formatInitialDimensions';
 
 interface FurnitureFormProps {
   onSubmit: (furniture: Omit<Furniture, 'id' | 'points'>) => void;

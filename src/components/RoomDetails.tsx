@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
-import { Room } from '../lib/types';
+import { Room } from '@/lib/types';
 
 interface RoomDetailsProps {
   room: Room | null;

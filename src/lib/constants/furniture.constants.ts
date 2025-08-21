@@ -1,4 +1,4 @@
-import { FurnitureTemplate } from './types';
+import { FurnitureTemplate } from '../types';
 
 export const FURNITURE_TEMPLATES: FurnitureTemplate[] = [
   // Seating

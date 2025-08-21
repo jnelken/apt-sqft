@@ -1,6 +1,8 @@
+'use client';
+
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { styled } from '@mui/material/styles';
-import { Point, Room, Wall, Furniture } from '../lib/types';
+import { Point, Room, Wall, Furniture } from '@/lib/types';
 
 /** position relative container */
 const EditorContainer = styled('div')(({ theme }) => ({

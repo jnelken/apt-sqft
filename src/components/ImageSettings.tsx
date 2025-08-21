@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useRef } from 'react';
 import { Box, IconButton, Slider, Tooltip } from '@mui/material';
 import ImageIcon from '@mui/icons-material/Image';

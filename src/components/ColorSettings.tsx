@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { Box, IconButton, Popover } from '@mui/material';
 import { HexColorPicker } from 'react-colorful';

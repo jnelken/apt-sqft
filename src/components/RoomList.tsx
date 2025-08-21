@@ -9,7 +9,7 @@ import {
   ListItemText,
   Divider,
 } from '@mui/material';
-import { Room } from '../lib/types';
+import { Room } from '@/lib/types';
 
 interface RoomListProps {
   rooms: Room[];

@@ -1,9 +1,11 @@
+'use client';
+
 import React, { useState, useEffect, ReactNode } from 'react';
 import { Box, Typography } from '@mui/material';
 import { CompactTextField } from './ui/CompactTextField';
 import { DimensionSelector, DimensionValues } from './ui/DimensionSelector';
 import { ActionButtons } from './ui/ActionButtons';
-import { formatInitialDimensions } from '../lib/utils/formatInitialDimensions';
+import { formatInitialDimensions } from '@/lib/utils/formatInitialDimensions';
 
 const DEFAULTS_BY_LABEL = {
   Room: {

@@ -9,7 +9,7 @@ import {
   ListItemText,
   Divider,
 } from '@mui/material';
-import { Furniture } from '../lib/types';
+import { Furniture } from '@/lib/types';
 
 interface FurnitureListProps {
   furniture: Furniture[];
