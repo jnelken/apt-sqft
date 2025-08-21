@@ -288,29 +288,6 @@ function App() {
     });
   };
 
-  // Add keyboard shortcuts for undo/redo and delete
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
-        e.preventDefault();
-        if (e.shiftKey) {
-          handleRedo();
-        } else {
-          handleUndo();
-        }
-      } else if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
-        e.preventDefault();
-        handleRedo();
-      } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        e.preventDefault();
-        handleDeleteSelected();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleDeleteSelected]);
-
   const handleFloorPlanSelect = (name: string) => {
     // Save current floor plan state
     setFloorPlans(prev => ({
@@ -632,7 +609,7 @@ function App() {
     }));
   };
 
-  const handleDeleteRoom = () => {
+  const handleDeleteRoom = useCallback(() => {
     if (!appState.selectedRoomId) return;
 
     const newFloorPlan = {
@@ -645,7 +622,7 @@ function App() {
     pushToHistory(newFloorPlan);
     setAppState(prev => ({ ...prev, selectedRoomId: null }));
     setSidebarTab(0); // Switch to Add Room tab after deletion
-  };
+  }, [appState.selectedRoomId, appState.floorPlan, setAppState, setSidebarTab]);
 
   const handleDuplicateRoom = () => {
     if (!appState.selectedRoomId) return;
@@ -778,25 +755,7 @@ function App() {
     pushToHistory(newFloorPlan);
   };
 
-  const handleDeleteFurniture = () => {
-    if (!appState.selectedRoomId) return;
 
-    // Remove the instance from current floor plan (but keep in inventory for reuse)
-    const newFloorPlan = {
-      ...appState.floorPlan,
-      furnitureInstances: appState.floorPlan.furnitureInstances.filter(
-        instance => instance.furnitureId !== appState.selectedRoomId,
-      ),
-    };
-
-    pushToHistory(newFloorPlan);
-    setAppState(prev => ({
-      ...prev,
-      selectedRoomId: null,
-      floorPlan: newFloorPlan,
-    }));
-    setSidebarTab(4); // Switch to Add Furniture tab after deletion
-  };
 
   const handleDuplicateFurniture = () => {
     if (!appState.selectedRoomId) return;
@@ -889,6 +848,26 @@ function App() {
     }
   };
 
+    const handleDeleteFurniture = useCallback(() => {
+    if (!appState.selectedRoomId) return;
+
+    // Remove the instance from current floor plan (but keep in inventory for reuse)
+    const newFloorPlan = {
+      ...appState.floorPlan,
+      furnitureInstances: appState.floorPlan.furnitureInstances.filter(
+        instance => instance.furnitureId !== appState.selectedRoomId,
+      ),
+    };
+
+    pushToHistory(newFloorPlan);
+    setAppState(prev => ({
+      ...prev,
+      selectedRoomId: null,
+      floorPlan: newFloorPlan,
+    }));
+    setSidebarTab(4); // Switch to Add Furniture tab after deletion
+  }, [appState.selectedRoomId, appState.floorPlan, setAppState, setSidebarTab]);
+
   const handleDeleteSelected = useCallback(() => {
     if (!appState.selectedRoomId) return;
 
@@ -904,6 +883,30 @@ function App() {
       handleDeleteFurniture();
     }
   }, [appState.selectedRoomId, appState.floorPlan.rooms, handleDeleteRoom, handleDeleteFurniture]);
+
+
+  // Add keyboard shortcuts for undo/redo and delete
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
+        e.preventDefault();
+        handleRedo();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        handleDeleteSelected();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleDeleteSelected]);
 
   const theme = createTheme({
     typography: {
