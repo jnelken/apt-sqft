@@ -137,3 +137,8 @@ export const FURNITURE_TEMPLATES: FurnitureTemplate[] = [
     category: 'other',
   },
 ];
+
+// Get unique furniture types from templates
+export const FURNITURE_TYPES = Array.from(
+  new Set(FURNITURE_TEMPLATES.map(template => template.type)),
+).sort();

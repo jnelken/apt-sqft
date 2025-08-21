@@ -1,7 +1,10 @@
 import React from 'react';
 import { MenuItem, Select, FormControl, InputLabel } from '@mui/material';
 import { Furniture } from '../lib/types';
-import { FURNITURE_TEMPLATES } from '../lib/constants/furniture.constants';
+import {
+  FURNITURE_TEMPLATES,
+  FURNITURE_TYPES,
+} from '../lib/constants/furniture.constants';
 import { BaseForm, BaseFormData } from './BaseForm';
 import { formatInitialDimensions } from '../lib/utils/formatInitialDimensions';
 
@@ -11,11 +14,6 @@ interface FurnitureFormProps {
   onDelete?: () => void;
   onDuplicate?: () => void;
 }
-
-// Get unique furniture types from templates
-const FURNITURE_TYPES = Array.from(
-  new Set(FURNITURE_TEMPLATES.map(template => template.type)),
-).sort();
 
 export const FurnitureForm: React.FC<FurnitureFormProps> = ({
   onSubmit,
