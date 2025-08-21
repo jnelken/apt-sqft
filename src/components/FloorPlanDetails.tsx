@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, Paper } from '@mui/material';
-import { FloorPlan } from '../types';
+import { FloorPlan } from '../lib/types';
 
 interface FloorPlanDetailsProps {
   floorPlan: FloorPlan;

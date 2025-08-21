@@ -1,6 +1,6 @@
 import React from 'react';
 import { Typography, ToggleButtonGroup, ToggleButton } from '@mui/material';
-import { Room } from '../types';
+import { Room } from '../lib/types';
 import { BaseForm } from './BaseForm';
 import { BaseFormData } from './BaseForm';
 

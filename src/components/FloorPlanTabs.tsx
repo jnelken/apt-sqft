@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs, Tab, Box, IconButton, Tooltip } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { FloorPlan } from '../types';
+import { FloorPlan } from '../lib/types';
 
 interface FloorPlanTabsProps {
   floorPlans: { [key: string]: FloorPlan };

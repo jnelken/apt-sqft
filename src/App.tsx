@@ -32,7 +32,7 @@ import {
   Furniture,
   FurnitureInventory,
   FurnitureInstance,
-} from './types';
+} from './lib/types';
 import { ColorSettings } from './components/ColorSettings';
 import { FloorPlanTabs } from './components/FloorPlanTabs';
 import { Typography } from '@mui/material';
