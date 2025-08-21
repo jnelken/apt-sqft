@@ -1,7 +1,7 @@
 import React from 'react';
 import { MenuItem, Select, FormControl, InputLabel } from '@mui/material';
 import { Furniture } from '../types';
-import { FURNITURE_TEMPLATES } from '../data/furnitureTemplates';
+import { FURNITURE_TEMPLATES } from '../lib/constants/furniture.constants';
 import { BaseForm, BaseFormData } from './BaseForm';
 import { formatInitialDimensions } from '../lib/utils/formatInitialDimensions';
 
