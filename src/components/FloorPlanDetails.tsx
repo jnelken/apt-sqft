@@ -10,15 +10,15 @@ export const FloorPlanDetails: React.FC<FloorPlanDetailsProps> = ({
   floorPlan,
 }) => {
   const totalLivableSqFt = floorPlan.rooms
-    .filter(room => room.roomType === 'livable')
+    .filter(room => room.livability === 'livable')
     .reduce((sum, room) => sum + room.sqFootage, 0);
 
   const totalNonLivableSqFt = floorPlan.rooms
-    .filter(room => room.roomType === 'non-livable')
+    .filter(room => room.livability === 'non-livable')
     .reduce((sum, room) => sum + room.sqFootage, 0);
 
   const totalOutdoorSqFt = floorPlan.rooms
-    .filter(room => room.roomType === 'outdoor')
+    .filter(room => room.livability === 'outdoor')
     .reduce((sum, room) => sum + room.sqFootage, 0);
 
   const totalSqFt = totalLivableSqFt + totalNonLivableSqFt + totalOutdoorSqFt;

@@ -73,7 +73,7 @@ export const RoomDetails: React.FC<RoomDetailsProps> = ({
         </Typography>
         <Typography variant="body1">
           <strong>Room Type:</strong>{' '}
-          {room.roomType.charAt(0).toUpperCase() + room.roomType.slice(1)}
+          {room.livability.charAt(0).toUpperCase() + room.livability.slice(1)}
         </Typography>
       </Paper>
     </Box>

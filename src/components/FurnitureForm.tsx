@@ -1,22 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-} from '@mui/material';
+import React from 'react';
+import { MenuItem, Select, FormControl, InputLabel } from '@mui/material';
 import { Furniture } from '../types';
-import { CompactTextField } from './ui/CompactTextField';
 import { FURNITURE_TEMPLATES } from '../data/furnitureTemplates';
-import { DimensionSelector, DimensionValues } from './ui/DimensionSelector';
-import { ActionButtons } from './ui/ActionButtons';
+import { BaseForm, BaseFormData } from './BaseForm';
 import { formatInitialDimensions } from '../lib/utils/formatInitialDimensions';
 
 interface FurnitureFormProps {
   onSubmit: (furniture: Omit<Furniture, 'id' | 'points'>) => void;
-  initialValues?: Partial<Furniture>;
+  initialValues?: Partial<BaseFormData>;
   onDelete?: () => void;
   onDuplicate?: () => void;
 }
@@ -36,126 +27,74 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
   const findTemplateByType = (type: string) => {
     return FURNITURE_TEMPLATES.find(template => template.type === type);
   };
-  const [formData, setFormData] = useState({
-    name: initialValues?.name || 'Furniture',
-    heightFeet: Math.floor((initialValues?.height || 30) / 12),
-    heightInches: (initialValues?.height || 30) % 12,
-    widthFeet: Math.floor((initialValues?.width || 30) / 12),
-    widthInches: (initialValues?.width || 30) % 12,
-    type: initialValues?.type || 'Other',
-    x: initialValues?.x || window.innerWidth / 2,
-    y: initialValues?.y || window.innerHeight / 2,
-  });
 
-  useEffect(() => {
-    if (initialValues) {
-      setFormData(prev => ({
-        ...prev,
-        name: initialValues.name || prev.name,
-        ...formatInitialDimensions(initialValues.height, initialValues.width),
-        type: initialValues.type || 'Other',
-        x: initialValues.x || prev.x,
-        y: initialValues.y || prev.y,
-      }));
-    }
-  }, [initialValues]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const totalHeight = formData.heightFeet * 12 + formData.heightInches;
-    const totalWidth = formData.widthFeet * 12 + formData.widthInches;
-
+  const handleSubmit = (data: any) => {
     // Get template color if available, otherwise use default
-    const template = findTemplateByType(formData.type);
-    const defaultColor = template?.defaultColor || '#D2691E';
+    const template = findTemplateByType(data.type);
+    const defaultColor =
+      initialValues?.color || template?.defaultColor || '#D2691E';
 
     onSubmit({
-      name: formData.name,
-      height: totalHeight,
-      width: totalWidth,
+      name: data.name,
+      height: data.height,
+      width: data.width,
       sqFootage: 0, // Furniture doesn't count towards sq footage
-      roomType: 'non-livable', // Furniture is always non-livable
-      type: formData.type,
-      x: initialValues?.x || formData.x,
-      y: initialValues?.y || formData.y,
-      color: initialValues?.color || defaultColor,
+      livability: 'non-livable', // Furniture is always non-livable
+      type: data.type,
+      x: data.x,
+      y: data.y,
+      color: data.color || defaultColor,
     });
   };
 
+  const getFurnitureTypeSection = (
+    formData: any,
+    onChange: (field: string, value: any) => void,
+  ) => (
+    <FormControl fullWidth sx={{ mt: 2, mb: 2 }}>
+      <InputLabel>Furniture Type</InputLabel>
+      <Select
+        value={formData.type}
+        label="Furniture Type"
+        onChange={e => {
+          const newType = e.target.value;
+          const template = findTemplateByType(newType);
+
+          // Update type and dimensions if template found
+          if (template && !initialValues) {
+            // Only update dimensions for new furniture, not when editing existing
+            const dimensions = formatInitialDimensions(
+              template.defaultHeight,
+              template.defaultWidth,
+            );
+            onChange('type', newType);
+            onChange('name', template.name);
+            onChange('heightFeet', dimensions.heightFeet);
+            onChange('heightInches', dimensions.heightInches);
+            onChange('widthFeet', dimensions.widthFeet);
+            onChange('widthInches', dimensions.widthInches);
+          } else {
+            onChange('type', newType);
+          }
+        }}>
+        {FURNITURE_TYPES.map(type => (
+          <MenuItem key={type} value={type}>
+            {type}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ p: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        {initialValues ? 'Edit Furniture' : 'Add New Furniture'}
-      </Typography>
-
-      <CompactTextField
-        label="Furniture Name"
-        value={formData.name}
-        onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-        required
-      />
-
-      <FormControl fullWidth sx={{ mt: 2, mb: 2 }}>
-        <InputLabel>Furniture Type</InputLabel>
-        <Select
-          value={formData.type}
-          label="Furniture Type"
-          onChange={e => {
-            const newType = e.target.value;
-            const template = findTemplateByType(newType);
-
-            // Update type and dimensions if template found
-            if (template && !initialValues) {
-              // Only update dimensions for new furniture, not when editing existing
-              setFormData(prev => ({
-                ...prev,
-                type: newType,
-                heightFeet: Math.floor(template.defaultHeight / 12),
-                heightInches: template.defaultHeight % 12,
-                widthFeet: Math.floor(template.defaultWidth / 12),
-                widthInches: template.defaultWidth % 12,
-                name: template.name, // Also update the name to match template
-              }));
-            } else {
-              setFormData(prev => ({ ...prev, type: newType }));
-            }
-          }}>
-          {FURNITURE_TYPES.map(type => (
-            <MenuItem key={type} value={type}>
-              {type}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-
-      <DimensionSelector
-        initialValues={{
-          heightFeet: formData.heightFeet,
-          heightInches: formData.heightInches,
-          widthFeet: formData.widthFeet,
-          widthInches: formData.widthInches,
-        }}
-        onChange={(dimensions: DimensionValues) =>
-          setFormData(prev => ({ ...prev, ...dimensions }))
-        }
-      />
-
-      {initialValues && (
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mt: 1, mb: 2 }}>
-          Position: ({initialValues.x}, {initialValues.y})
-        </Typography>
-      )}
-
-      <ActionButtons
-        onSubmit={() => {}} // Form handles submit via onSubmit prop
-        submitText={initialValues ? 'Update' : 'Add'}
-        showSubmit={true}
-        onDuplicate={onDuplicate}
-        onDelete={onDelete}
-      />
-    </Box>
+    <BaseForm
+      label="Furniture"
+      initialValues={initialValues}
+      onSubmit={handleSubmit}
+      onDelete={onDelete}
+      onDuplicate={onDuplicate}
+      additionalFields={getFurnitureTypeSection}
+      additionalFormData={{ type: initialValues?.type || 'Other' }}
+    />
   );
 };

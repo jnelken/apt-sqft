@@ -86,7 +86,7 @@ interface Room {
   height: number;
   width: number;
   sqFootage: number;
-  roomType: 'livable' | 'non-livable' | 'outdoor';
+  livability: 'livable' | 'non-livable' | 'outdoor';
   points: Point[];
   x: number;
   y: number;
