@@ -15,6 +15,34 @@ const DEFAULTS_BY_LABEL = {
     width: 240,
   },
 };
+
+const calculateFeet = (inches: number) => Math.floor(inches / 12);
+const calculateInches = (inches: number) => inches % 12;
+const generateX = () => window.innerWidth / 2;
+const generateY = () => window.innerHeight / 2;
+const generateName = (label: string) => {
+  const letter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+  return `${label} ${letter}`;
+};
+
+const generateDefaultValues = (label: 'Room' | 'Furniture') => {
+  return {
+    name: generateName(label),
+    height: DEFAULTS_BY_LABEL[label].height,
+    width: DEFAULTS_BY_LABEL[label].width,
+    x: generateX(),
+    y: generateY(),
+  };
+};
+
+const calculateFeetAndInches = (values: { height: number; width: number }) => {
+  const heightFeet = calculateFeet(values.height);
+  const heightInches = calculateInches(values.height);
+  const widthFeet = calculateFeet(values.width);
+  const widthInches = calculateInches(values.width);
+  return { heightFeet, heightInches, widthFeet, widthInches };
+};
+
 export interface BaseFormData extends DimensionValues {
   name: string;
   x: number;
@@ -38,12 +66,9 @@ interface BaseFormProps {
   onAdditionalFieldChange?: (field: string, value: any) => void;
 }
 
-const calculateFeet = (inches: number) => Math.floor(inches / 12);
-const calculateInches = (inches: number) => inches % 12;
-
 export const BaseForm: React.FC<BaseFormProps> = ({
   label,
-  initialValues,
+  initialValues = {},
   onSubmit,
   onDelete,
   onDuplicate,
@@ -51,19 +76,16 @@ export const BaseForm: React.FC<BaseFormProps> = ({
   additionalFormData = {},
   onAdditionalFieldChange,
 }) => {
-  const letter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
-  const defaultName = initialValues?.name || `${label} ${letter}`;
-  const defaultHeight = DEFAULTS_BY_LABEL[label].height;
-  const defaultWidth = DEFAULTS_BY_LABEL[label].width;
-  const [formData, setFormData] = useState<BaseFormData>({
+  const values = {
+    ...generateDefaultValues(label),
     ...initialValues,
-    name: defaultName,
-    heightFeet: calculateFeet(initialValues?.height || defaultHeight),
-    heightInches: calculateInches(initialValues?.height || defaultHeight),
-    widthFeet: calculateFeet(initialValues?.width || defaultWidth),
-    widthInches: calculateInches(initialValues?.width || defaultWidth),
-    x: window.innerWidth / 2,
-    y: window.innerHeight / 2,
+  };
+
+  const feetAndInches = calculateFeetAndInches(values);
+
+  const [formData, setFormData] = useState<BaseFormData>({
+    ...values,
+    ...feetAndInches,
     ...additionalFormData,
   });
 
@@ -75,10 +97,16 @@ export const BaseForm: React.FC<BaseFormProps> = ({
         ...formatInitialDimensions(initialValues.height, initialValues.width),
         x: initialValues.x || prev.x,
         y: initialValues.y || prev.y,
-        ...additionalFormData,
       }));
     }
-  }, [initialValues, additionalFormData]);
+  }, [initialValues]);
+
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      ...additionalFormData,
+    }));
+  }, [additionalFormData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
