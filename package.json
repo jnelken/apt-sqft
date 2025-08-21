@@ -27,11 +27,6 @@
     "lint": "next lint",
     "test": "jest"
   },
-  "eslintConfig": {
-    "extends": [
-      "next/core-web-vitals"
-    ]
-  },
   "browserslist": {
     "production": [
       ">0.2%",

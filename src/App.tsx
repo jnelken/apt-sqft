@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
@@ -309,7 +309,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [appState.selectedRoomId]);
+  }, [handleDeleteSelected]);
 
   const handleFloorPlanSelect = (name: string) => {
     // Save current floor plan state
@@ -889,7 +889,7 @@ function App() {
     }
   };
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = useCallback(() => {
     if (!appState.selectedRoomId) return;
 
     // Check if the selected item is a room
@@ -903,7 +903,7 @@ function App() {
       // It must be furniture
       handleDeleteFurniture();
     }
-  };
+  }, [appState.selectedRoomId, appState.floorPlan.rooms, handleDeleteRoom, handleDeleteFurniture]);
 
   const theme = createTheme({
     typography: {
