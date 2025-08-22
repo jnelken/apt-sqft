@@ -83,24 +83,15 @@ function App() {
     pushToHistory,
   });
 
-  const {
-    handleAddRoom,
-    handleUpdateRoom,
-    handleDeleteRoom,
-    handleDuplicateRoom,
-  } = useRoomManager({
+  // Only keep delete functions for keyboard shortcuts
+  const { handleDeleteRoom } = useRoomManager({
     appState,
     setAppState,
     pushToHistory,
     setSidebarTab,
   });
 
-  const {
-    handleAddFurniture,
-    handleUpdateFurniture,
-    handleDuplicateFurniture,
-    handleDeleteFurniture,
-  } = useFurnitureManager({
+  const { handleDeleteFurniture } = useFurnitureManager({
     appState,
     setAppState,
     pushToHistory,
@@ -233,16 +224,11 @@ function App() {
             )}
             selectedRoomId={appState.selectedRoomId}
             onRoomSelect={handleRoomSelect}
-            onAddRoom={handleAddRoom}
-            onUpdateRoom={handleUpdateRoom}
-            onDeleteRoom={handleDeleteRoom}
-            onDuplicateRoom={handleDuplicateRoom}
-            onAddFurniture={handleAddFurniture}
-            onUpdateFurniture={handleUpdateFurniture}
-            onDeleteFurniture={handleDeleteFurniture}
-            onDuplicateFurniture={handleDuplicateFurniture}
             onSwapDimensions={handleSwapDimensions}
             floorPlan={appState.floorPlan}
+            appState={appState}
+            setAppState={setAppState}
+            setSidebarTab={setSidebarTab}
           />
         </Box>
       </Box>

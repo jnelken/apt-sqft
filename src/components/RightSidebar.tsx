@@ -18,7 +18,10 @@ import { RoomList } from './RoomList';
 import { FloorPlanDetails } from './FloorPlanDetails';
 import { FurnitureForm } from './FurnitureForm';
 import { FurnitureList } from './FurnitureList';
-import { Room, Furniture } from '@/lib/types';
+import { Room, Furniture, AppState } from '@/lib/types';
+import { useRoomManager } from '@/lib/hooks/useRoomManager';
+import { useFurnitureManager } from '@/lib/hooks/useFurnitureManager';
+import { useHistoryManager } from '@/lib/hooks/useHistoryManager';
 
 interface RightSidebarProps {
   sidebarTab: number;
@@ -26,21 +29,18 @@ interface RightSidebarProps {
   selectedRoom: Room | undefined;
   selectedFurniture: Furniture | undefined;
   selectedTool: 'select' | 'move' | 'resize' | 'add-point' | 'edit';
-  onToolChange: (tool: 'select' | 'move' | 'resize' | 'add-point' | 'edit') => void;
+  onToolChange: (
+    tool: 'select' | 'move' | 'resize' | 'add-point' | 'edit',
+  ) => void;
   rooms: Room[];
   furniture: Furniture[];
   selectedRoomId: string | null;
   onRoomSelect: (roomId: string | null) => void;
-  onAddRoom: (room: Omit<Room, 'id' | 'points'>) => void;
-  onUpdateRoom: (room: Omit<Room, 'id' | 'points'>) => void;
-  onDeleteRoom: () => void;
-  onDuplicateRoom: () => void;
-  onAddFurniture: (furniture: Omit<Furniture, 'id' | 'points'>) => void;
-  onUpdateFurniture: (furniture: Omit<Furniture, 'id' | 'points'>) => void;
-  onDeleteFurniture: () => void;
-  onDuplicateFurniture: () => void;
   onSwapDimensions: () => void;
   floorPlan: any; // TODO: Add proper type
+  appState: AppState;
+  setAppState: React.Dispatch<React.SetStateAction<AppState>>;
+  setSidebarTab: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export function RightSidebar({
@@ -54,17 +54,38 @@ export function RightSidebar({
   furniture,
   selectedRoomId,
   onRoomSelect,
-  onAddRoom,
-  onUpdateRoom,
-  onDeleteRoom,
-  onDuplicateRoom,
-  onAddFurniture,
-  onUpdateFurniture,
-  onDeleteFurniture,
-  onDuplicateFurniture,
   onSwapDimensions,
   floorPlan,
+  appState,
+  setAppState,
+  setSidebarTab,
 }: RightSidebarProps) {
+  const { pushToHistory } = useHistoryManager({ appState, setAppState });
+
+  const {
+    handleAddRoom,
+    handleUpdateRoom,
+    handleDuplicateRoom,
+    handleDeleteRoom,
+  } = useRoomManager({
+    appState,
+    setAppState,
+    pushToHistory,
+    setSidebarTab,
+  });
+
+  const {
+    handleAddFurniture,
+    handleUpdateFurniture,
+    handleDuplicateFurniture,
+    handleDeleteFurniture,
+  } = useFurnitureManager({
+    appState,
+    setAppState,
+    pushToHistory,
+    setSidebarTab,
+  });
+
   return (
     <Box
       sx={{
@@ -106,14 +127,13 @@ export function RightSidebar({
         </Tooltip>
       </Tabs>
       <Box sx={{ flex: 1, overflow: 'auto' }}>
-        {sidebarTab === 0 && <RoomForm onSubmit={onAddRoom} />}
+        {sidebarTab === 0 && <RoomForm onSubmit={handleAddRoom} />}
         {sidebarTab === 1 && (
           <>
             {selectedRoom ? (
               selectedTool === 'edit' ? (
                 <Box>
-                  <Box
-                    sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <IconButton
                       onClick={() => onToolChange('select')}
                       sx={{ mr: 1 }}>
@@ -122,10 +142,10 @@ export function RightSidebar({
                     <Typography variant="h6">Edit Room</Typography>
                   </Box>
                   <RoomForm
-                    onSubmit={onUpdateRoom}
+                    onSubmit={handleUpdateRoom}
                     initialValues={selectedRoom}
-                    onDelete={onDeleteRoom}
-                    onDuplicate={onDuplicateRoom}
+                    onDelete={handleDeleteRoom}
+                    onDuplicate={handleDuplicateRoom}
                   />
                 </Box>
               ) : (
@@ -138,8 +158,7 @@ export function RightSidebar({
             ) : selectedFurniture ? (
               selectedTool === 'edit' ? (
                 <Box>
-                  <Box
-                    sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <IconButton
                       onClick={() => onToolChange('select')}
                       sx={{ mr: 1 }}>
@@ -148,10 +167,10 @@ export function RightSidebar({
                     <Typography variant="h6">Edit Furniture</Typography>
                   </Box>
                   <FurnitureForm
-                    onSubmit={onUpdateFurniture}
+                    onSubmit={handleUpdateFurniture}
                     initialValues={selectedFurniture}
-                    onDelete={onDeleteFurniture}
-                    onDuplicate={onDuplicateFurniture}
+                    onDelete={handleDeleteFurniture}
+                    onDuplicate={handleDuplicateFurniture}
                   />
                 </Box>
               ) : (
@@ -166,9 +185,7 @@ export function RightSidebar({
             )}
           </>
         )}
-        {sidebarTab === 2 && (
-          <FloorPlanDetails floorPlan={floorPlan} />
-        )}
+        {sidebarTab === 2 && <FloorPlanDetails floorPlan={floorPlan} />}
         {sidebarTab === 3 && (
           <>
             <RoomList
@@ -189,8 +206,7 @@ export function RightSidebar({
             {selectedRoom ? (
               selectedTool === 'edit' ? (
                 <Box>
-                  <Box
-                    sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <IconButton
                       onClick={() => onToolChange('select')}
                       sx={{ mr: 1 }}>
@@ -199,10 +215,10 @@ export function RightSidebar({
                     <Typography variant="h6">Edit Furniture</Typography>
                   </Box>
                   <FurnitureForm
-                    onSubmit={onUpdateFurniture}
+                    onSubmit={handleUpdateFurniture}
                     initialValues={selectedRoom}
-                    onDelete={onDeleteFurniture}
-                    onDuplicate={onDuplicateFurniture}
+                    onDelete={handleDeleteFurniture}
+                    onDuplicate={handleDuplicateFurniture}
                   />
                 </Box>
               ) : (
@@ -213,7 +229,7 @@ export function RightSidebar({
                 />
               )
             ) : (
-              <FurnitureForm onSubmit={onAddFurniture} />
+              <FurnitureForm onSubmit={handleAddFurniture} />
             )}
           </>
         )}
