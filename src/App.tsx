@@ -1,89 +1,28 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
-import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
-import Tooltip from '@mui/material/Tooltip';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import InfoIcon from '@mui/icons-material/Info';
-import ListIcon from '@mui/icons-material/List';
-import ChairIcon from '@mui/icons-material/Chair';
-import IconButton from '@mui/material/IconButton';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { LayoutEditor } from '@/components/LayoutEditor';
-import { RoomForm } from '@/components/RoomForm';
-import { RoomDetails } from '@/components/RoomDetails';
-import { RoomList } from '@/components/RoomList';
-import { GridSettings } from '@/components/GridSettings';
-import { ImageSettings } from '@/components/ImageSettings';
-import { ZoomControls } from '@/components/ZoomControls';
-import { ThemeSwitcher } from '@/components/ThemeSwitcher';
-import { FloorPlanName } from '@/components/FloorPlanName';
-import { FloorPlanDetails } from '@/components/FloorPlanDetails';
-import {
-  AppState,
-  Room,
-  FloorPlan,
-  Furniture,
-  FurnitureInventory,
-  FurnitureInstance,
-} from '@/lib/types';
-import { ColorSettings } from '@/components/ColorSettings';
 import { FloorPlanTabs } from '@/components/FloorPlanTabs';
-import { Typography } from '@mui/material';
-import { FurnitureForm } from '@/components/FurnitureForm';
-import { FurnitureList } from '@/components/FurnitureList';
-import { Divider } from '@mui/material';
-import UndoIcon from '@mui/icons-material/Undo';
-import RedoIcon from '@mui/icons-material/Redo';
-import { Settings } from '@/components/Settings';
+import { MainToolbar } from '@/components/MainToolbar';
+import { LeftPanel } from '@/components/LeftPanel';
+import { MainContent } from '@/components/MainContent';
+import { RightSidebar } from '@/components/RightSidebar';
+import { FurnitureInventory, FurnitureInstance, Furniture } from '@/lib/types';
 
-const INIT_GRID_SIZE = 12;
-// Maximum number of history entries to prevent session storage overflow
-// Each entry contains a complete FloorPlan object, so 50 entries should be reasonable
-// while still providing good undo/redo functionality
-const MAX_HISTORY_SIZE = 50;
-
-// Utility function to estimate session storage usage
-const getSessionStorageSize = () => {
-  let total = 0;
-  for (let key in sessionStorage) {
-    if (sessionStorage.hasOwnProperty(key)) {
-      total += sessionStorage[key].length + key.length;
-    }
-  }
-  return total;
-};
-
-const initialFloorPlan = {
-  name: 'Untitled',
-  rooms: [],
-  furnitureInstances: [],
-  backgroundImage: null,
-  imageScale: 1,
-};
-
-const initialAppState: AppState = {
-  floorPlan: initialFloorPlan,
-  furnitureInventory: {},
-  selectedRoomId: null,
-  selectedTool: 'select',
-  zoom: 1,
-  theme: 'light',
-  highlightColor: '#377c7c',
-  wallColor: '#377c7c',
-  gridSize: INIT_GRID_SIZE,
-  gridOpacity: 0.2,
-  history: [initialFloorPlan],
-  historyIndex: 0,
-};
+// Import custom hooks
+import {
+  useLocalStoragePersistence,
+  initializeStateFromStorage,
+} from '@/lib/hooks/useLocalStoragePersistence';
+import { useHistoryManager } from '@/lib/hooks/useHistoryManager';
+import { useFloorPlanManager } from '@/lib/hooks/useFloorPlanManager';
+import { useRoomManager } from '@/lib/hooks/useRoomManager';
+import { useFurnitureManager } from '@/lib/hooks/useFurnitureManager';
+import { useItemSelection } from '@/lib/hooks/useItemSelection';
+import { useKeyboardShortcuts } from '@/lib/hooks/useKeyboardShortcuts';
+import { useAppSettings } from '@/lib/hooks/useAppSettings';
 
 // Helper function to get furniture objects from instances
 const getFurnitureFromInstances = (
@@ -104,822 +43,121 @@ const getFurnitureFromInstances = (
 };
 
 function App() {
-  const [floorPlans, setFloorPlans] = useState<{ [key: string]: FloorPlan }>(
-    () => {
-      const savedFloorPlans = localStorage.getItem('floorPlans');
-      return savedFloorPlans
-        ? JSON.parse(savedFloorPlans)
-        : { Untitled: initialFloorPlan };
-    },
-  );
+  // Initialize state from localStorage/sessionStorage
+  const {
+    floorPlans: initialFloorPlans,
+    currentFloorPlanName: initialCurrentName,
+    appState: initialAppState,
+  } = initializeStateFromStorage();
 
-  const [currentFloorPlanName, setCurrentFloorPlanName] = useState<string>(
-    () => {
-      const savedCurrentName = localStorage.getItem('currentFloorPlanName');
-      return savedCurrentName || 'Untitled';
-    },
-  );
-
-  const [appState, setAppState] = useState<AppState>(() => {
-    const savedState = localStorage.getItem('appState');
-    const savedHistory = sessionStorage.getItem('history');
-    const savedHistoryIndex = sessionStorage.getItem('historyIndex');
-
-    if (savedState) {
-      try {
-        const parsedState = JSON.parse(savedState);
-        let history = [initialAppState.floorPlan];
-        let historyIndex = 0;
-
-        // Try to load history from sessionStorage with size validation
-        if (savedHistory) {
-          try {
-            const parsedHistory = JSON.parse(savedHistory);
-            if (Array.isArray(parsedHistory)) {
-              // Limit history size on load
-              history =
-                parsedHistory.length > MAX_HISTORY_SIZE
-                  ? parsedHistory.slice(-MAX_HISTORY_SIZE)
-                  : parsedHistory;
-
-              // Adjust history index if history was truncated
-              const savedIndex = savedHistoryIndex
-                ? parseInt(savedHistoryIndex, 10)
-                : 0;
-              historyIndex =
-                parsedHistory.length > MAX_HISTORY_SIZE
-                  ? Math.min(savedIndex, history.length - 1)
-                  : savedIndex;
-            }
-          } catch (historyError) {
-            console.warn(
-              'Error parsing saved history, using default:',
-              historyError,
-            );
-            // Clear corrupted history
-            sessionStorage.removeItem('history');
-            sessionStorage.removeItem('historyIndex');
-          }
-        }
-
-        // Merge with initial state to ensure all properties exist
-        return {
-          ...initialAppState,
-          ...parsedState,
-          // Ensure nested objects are also merged
-          floorPlan: {
-            ...initialAppState.floorPlan,
-            ...parsedState.floorPlan,
-          },
-          history,
-          historyIndex,
-        };
-      } catch (e) {
-        console.error('Error parsing saved state:', e);
-        return initialAppState;
-      }
-    }
-    return initialAppState;
-  });
-
+  const [floorPlans, setFloorPlans] = useState(initialFloorPlans);
+  const [currentFloorPlanName, setCurrentFloorPlanName] =
+    useState(initialCurrentName);
+  const [appState, setAppState] = useState(initialAppState);
   const [sidebarTab, setSidebarTab] = useState(0);
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
 
-  // No migration needed - we'll simply ignore any legacy furniture not in inventory
+  // Use custom hooks
+  useLocalStoragePersistence({ appState, floorPlans, currentFloorPlanName });
 
-  // Save floor plans and current name to localStorage
-  useEffect(() => {
-    localStorage.setItem('floorPlans', JSON.stringify(floorPlans));
-    localStorage.setItem('currentFloorPlanName', currentFloorPlanName);
-  }, [floorPlans, currentFloorPlanName]);
-
-  // Save app state to localStorage (excluding history)
-  useEffect(() => {
-    const { history, historyIndex, ...stateToSave } = appState;
-    localStorage.setItem('appState', JSON.stringify(stateToSave));
-  }, [appState]);
-
-  // Save history to sessionStorage with error handling
-  useEffect(() => {
-    try {
-      sessionStorage.setItem('history', JSON.stringify(appState.history));
-      sessionStorage.setItem('historyIndex', appState.historyIndex.toString());
-    } catch (error) {
-      // If sessionStorage is full, clear old history and try again
-      console.warn('Session storage full, clearing old history:', error);
-      const reducedHistory = appState.history.slice(
-        -Math.floor(MAX_HISTORY_SIZE / 2),
-      );
-      const newHistoryIndex = Math.min(
-        appState.historyIndex,
-        reducedHistory.length - 1,
-      );
-
-      try {
-        sessionStorage.setItem('history', JSON.stringify(reducedHistory));
-        sessionStorage.setItem('historyIndex', newHistoryIndex.toString());
-
-        // Update app state to reflect the reduced history
-        setAppState(prev => ({
-          ...prev,
-          history: reducedHistory,
-          historyIndex: newHistoryIndex,
-        }));
-      } catch (secondError) {
-        console.error('Failed to save even reduced history:', secondError);
-        // Clear all history as last resort
-        sessionStorage.removeItem('history');
-        sessionStorage.removeItem('historyIndex');
-      }
-    }
-  }, [appState.history, appState.historyIndex]);
-
-  // Add history management functions
-  const pushToHistory = (newFloorPlan: FloorPlan) => {
-    setAppState(prev => {
-      // Remove any future history if we're not at the end
-      let newHistory = prev.history.slice(0, prev.historyIndex + 1);
-      newHistory.push(newFloorPlan);
-
-      // Limit history size to prevent session storage overflow
-      if (newHistory.length > MAX_HISTORY_SIZE) {
-        const oldLength = newHistory.length;
-        // Remove oldest entries, keeping the most recent MAX_HISTORY_SIZE entries
-        newHistory = newHistory.slice(newHistory.length - MAX_HISTORY_SIZE);
-        console.log(
-          `History trimmed from ${oldLength} to ${newHistory.length} entries`,
-        );
-      }
-
-      return {
-        ...prev,
-        floorPlan: newFloorPlan,
-        history: newHistory,
-        historyIndex: newHistory.length - 1,
-      };
+  const { pushToHistory, handleUndo, handleRedo, canUndo, canRedo } =
+    useHistoryManager({
+      appState,
+      setAppState,
     });
-  };
 
-  const handleUndo = () => {
-    setAppState(prev => {
-      if (prev.historyIndex > 0) {
-        const newIndex = prev.historyIndex - 1;
-        return {
-          ...prev,
-          floorPlan: prev.history[newIndex],
-          historyIndex: newIndex,
-        };
-      }
-      return prev;
-    });
-  };
-
-  const handleRedo = () => {
-    setAppState(prev => {
-      if (prev.historyIndex < prev.history.length - 1) {
-        const newIndex = prev.historyIndex + 1;
-        return {
-          ...prev,
-          floorPlan: prev.history[newIndex],
-          historyIndex: newIndex,
-        };
-      }
-      return prev;
-    });
-  };
-
-  const handleFloorPlanSelect = (name: string) => {
-    // Save current floor plan state
-    setFloorPlans(prev => ({
-      ...prev,
-      [currentFloorPlanName]: appState.floorPlan,
-    }));
-
-    // Load selected floor plan
-    setCurrentFloorPlanName(name);
-    pushToHistory(floorPlans[name]);
-  };
-
-  const handleNameChange = (name: string) => {
-    // If the name is changing, we need to update the floor plans object
-    if (name !== currentFloorPlanName) {
-      const newFloorPlans = { ...floorPlans };
-      // Remove the old name entry
-      delete newFloorPlans[currentFloorPlanName];
-      // Add the new name entry
-      newFloorPlans[name] = { ...appState.floorPlan, name };
-      setFloorPlans(newFloorPlans);
-      setCurrentFloorPlanName(name);
-    }
-
-    const newFloorPlan = { ...appState.floorPlan, name };
-    pushToHistory(newFloorPlan);
-  };
-
-  const handleDelete = () => {
-    // Remove the current floor plan
-    const newFloorPlans = { ...floorPlans };
-    delete newFloorPlans[currentFloorPlanName];
-    setFloorPlans(newFloorPlans);
-
-    // Switch to the first available floor plan or create a new one
-    const remainingNames = Object.keys(newFloorPlans);
-    if (remainingNames.length > 0) {
-      setCurrentFloorPlanName(remainingNames[0]);
-      setAppState(prev => ({
-        ...prev,
-        floorPlan: newFloorPlans[remainingNames[0]],
-      }));
-    } else {
-      setCurrentFloorPlanName('Untitled');
-      setAppState(prev => ({
-        ...prev,
-        floorPlan: initialFloorPlan,
-      }));
-    }
-  };
-
-  const handleNewFloorPlan = () => {
-    // Generate a unique name for the new floor plan
-    const baseName = 'Untitled';
-    let newName = baseName;
-    let counter = 1;
-    while (floorPlans[newName]) {
-      newName = `${baseName} ${counter}`;
-      counter++;
-    }
-
-    // Save current floor plan state
-    setFloorPlans(prev => ({
-      ...prev,
-      [currentFloorPlanName]: appState.floorPlan,
-    }));
-
-    // Create new floor plan
-    const newFloorPlan = {
-      ...initialFloorPlan,
-      name: newName,
-    };
-
-    setFloorPlans(prev => ({
-      ...prev,
-      [newName]: newFloorPlan,
-    }));
-
-    // Switch to the new floor plan
-    setCurrentFloorPlanName(newName);
-    setAppState(prev => ({
-      ...prev,
-      floorPlan: newFloorPlan,
-    }));
-  };
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setSidebarTab(newValue);
-    // Clear room selection when switching to Add Room tab
-    if (newValue === 0) {
-      setAppState(prev => ({ ...prev, selectedRoomId: null }));
-    }
-  };
-
-  const handleGridSizeChange = (newSize: number) => {
-    setAppState(prev => ({
-      ...prev,
-      gridSize: newSize,
-    }));
-  };
-
-  const handleGridOpacityChange = (opacity: number) => {
-    setAppState(prev => ({
-      ...prev,
-      gridOpacity: opacity,
-    }));
-  };
-
-  const handleImageUpload = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const newName =
-        appState.floorPlan.name === 'Untitled'
-          ? file.name.replace(/\.[^/.]+$/, '') // Remove file extension
-          : appState.floorPlan.name;
-
-      // Update floor plans object with new name
-      const newFloorPlans = { ...floorPlans };
-      delete newFloorPlans[appState.floorPlan.name];
-      newFloorPlans[newName] = {
-        ...appState.floorPlan,
-        name: newName,
-        backgroundImage: e.target?.result as string,
-      };
-      setFloorPlans(newFloorPlans);
-      setCurrentFloorPlanName(newName);
-
-      // Update app state
-      setAppState(prev => ({
-        ...prev,
-        floorPlan: {
-          ...prev.floorPlan,
-          name: newName,
-          backgroundImage: e.target?.result as string,
-        },
-      }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleImageScaleChange = (scale: number) => {
-    setAppState(prev => ({
-      ...prev,
-      floorPlan: { ...prev.floorPlan, imageScale: scale },
-    }));
-  };
-
-  const selectedRoom = appState.floorPlan.rooms.find(
-    room => room.id === appState.selectedRoomId,
-  );
-  const selectedFurniture = (() => {
-    if (!appState.selectedRoomId) return undefined;
-    const instance = appState.floorPlan.furnitureInstances.find(
-      inst => inst.furnitureId === appState.selectedRoomId,
-    );
-    const furniture = appState.furnitureInventory[appState.selectedRoomId];
-    if (!instance || !furniture) return undefined;
-    return {
-      ...furniture,
-      x: instance.x,
-      y: instance.y,
-    };
-  })();
-
-  const handleRoomSelect = (roomId: string | null) => {
-    setAppState(prev => ({ ...prev, selectedRoomId: roomId }));
-    if (roomId) {
-      setSidebarTab(1); // Switch to Room Details tab when a room is selected
-    }
-  };
-
-  const handleRoomMove = (
-    roomId: string,
-    x: number,
-    y: number,
-    isDragging: boolean = false,
-  ) => {
-    // Check if the item is a room or furniture
-    const isRoom = appState.floorPlan.rooms.some(room => room.id === roomId);
-    const isFurniture = appState.floorPlan.furnitureInstances.some(
-      instance => instance.furnitureId === roomId,
-    );
-
-    const newFloorPlan = { ...appState.floorPlan };
-
-    if (isRoom) {
-      newFloorPlan.rooms = newFloorPlan.rooms.map(room =>
-        room.id === roomId
-          ? {
-              ...room,
-              x,
-              y,
-            }
-          : room,
-      );
-    } else if (isFurniture) {
-      newFloorPlan.furnitureInstances = newFloorPlan.furnitureInstances.map(
-        instance =>
-          instance.furnitureId === roomId
-            ? {
-                ...instance,
-                x,
-                y,
-              }
-            : instance,
-      );
-    }
-
-    // Only push to history if we're not dragging (i.e., this is the final position)
-    if (!isDragging) {
-      pushToHistory(newFloorPlan);
-    } else {
-      // Just update the current state without adding to history
-      setAppState(prev => ({
-        ...prev,
-        floorPlan: newFloorPlan,
-      }));
-    }
-  };
-
-  const handleRoomResize = (
-    roomId: string,
-    width: number,
-    height: number,
-    isResizing: boolean = false,
-  ) => {
-    const newFloorPlan = { ...appState.floorPlan };
-    const isRoom = newFloorPlan.rooms.some(room => room.id === roomId);
-    const isFurniture = newFloorPlan.furnitureInstances.some(
-      instance => instance.furnitureId === roomId,
-    );
-
-    if (isRoom) {
-      newFloorPlan.rooms = newFloorPlan.rooms.map(room =>
-        room.id === roomId
-          ? {
-              ...room,
-              width,
-              height,
-            }
-          : room,
-      );
-    } else if (isFurniture) {
-      // Update furniture in inventory
-      const updatedInventory = {
-        ...appState.furnitureInventory,
-        [roomId]: {
-          ...appState.furnitureInventory[roomId],
-          width,
-          height,
-        },
-      };
-
-      setAppState(prev => ({
-        ...prev,
-        furnitureInventory: updatedInventory,
-      }));
-    }
-
-    // Only push to history if we're not resizing (i.e., this is the final size)
-    if (!isResizing) {
-      pushToHistory(newFloorPlan);
-    } else {
-      // Just update the current state without adding to history
-      setAppState(prev => ({
-        ...prev,
-        floorPlan: newFloorPlan,
-      }));
-    }
-  };
-
-  const handleAddRoom = (roomData: Omit<Room, 'id' | 'points'>) => {
-    // Get the editor container dimensions
-    const editorContainer = document.querySelector(
-      '.LayoutEditor',
-    ) as HTMLElement;
-    const editorWidth = editorContainer?.offsetWidth;
-    const editorHeight = editorContainer?.offsetHeight;
-
-    // Calculate center position by adding half the editor dimensions
-    const centeredX = editorWidth / 2 - roomData.width / 2;
-    const centeredY = editorHeight / 2 - roomData.height / 2;
-
-    const newRoom: Room = {
-      ...roomData,
-      id: Date.now().toString(),
-      points: [],
-      x: centeredX,
-      y: centeredY,
-      sqFootage: Math.round((roomData.width * roomData.height) / 144), // Round the square footage
-    };
-
-    setAppState(prev => ({
-      ...prev,
-      floorPlan: {
-        ...prev.floorPlan,
-        rooms: [...prev.floorPlan.rooms, newRoom],
-      },
-    }));
-  };
-
-  const handleUpdateRoom = (roomData: Omit<Room, 'id' | 'points'>) => {
-    if (!appState.selectedRoomId) return;
-
-    setAppState(prev => ({
-      ...prev,
-      floorPlan: {
-        ...prev.floorPlan,
-        rooms: prev.floorPlan.rooms.map(room =>
-          room.id === appState.selectedRoomId
-            ? {
-                ...room,
-                ...roomData,
-                sqFootage: Math.round((roomData.width * roomData.height) / 144), // Round the square footage
-              }
-            : room,
-        ),
-      },
-    }));
-  };
-
-  const handleDeleteRoom = useCallback(() => {
-    if (!appState.selectedRoomId) return;
-
-    const newFloorPlan = {
-      ...appState.floorPlan,
-      rooms: appState.floorPlan.rooms.filter(
-        room => room.id !== appState.selectedRoomId,
-      ),
-    };
-
-    pushToHistory(newFloorPlan);
-    setAppState(prev => ({ ...prev, selectedRoomId: null }));
-    setSidebarTab(0); // Switch to Add Room tab after deletion
-  }, [appState.selectedRoomId, appState.floorPlan, setAppState, setSidebarTab]);
-
-  const handleDuplicateRoom = () => {
-    if (!appState.selectedRoomId) return;
-    const roomToClone = appState.floorPlan.rooms.find(
-      room => room.id === appState.selectedRoomId,
-    );
-    if (!roomToClone) return;
-
-    const newRoom: Room = {
-      ...roomToClone,
-      id: Date.now().toString(),
-      name: `${roomToClone.name} (Copy)`,
-      x: roomToClone.x + 50,
-      y: roomToClone.y + 50,
-      points: [],
-    };
-
-    setAppState(prev => ({
-      ...prev,
-      floorPlan: {
-        ...prev.floorPlan,
-        rooms: [...prev.floorPlan.rooms, newRoom],
-      },
-      selectedRoomId: newRoom.id,
-    }));
-  };
-
-  const handleZoomChange = (newZoom: number) => {
-    setAppState(prev => ({ ...prev, zoom: newZoom }));
-  };
-
-  const handleThemeChange = (newTheme: 'light' | 'dark') => {
-    setAppState(prev => ({ ...prev, theme: newTheme }));
-  };
-
-  const handleWallColorChange = (color: string) => {
-    setAppState(prev => ({
-      ...prev,
-      wallColor: color,
-    }));
-  };
-
-  const handleHighlightColorChange = (color: string) => {
-    setAppState(prev => ({ ...prev, highlightColor: color }));
-  };
-
-  const handleAddFurniture = (
-    furnitureData: Omit<Furniture, 'id' | 'points'>,
-  ) => {
-    const furnitureId = Date.now().toString();
-    const newFurniture: Furniture = {
-      ...furnitureData,
-      id: furnitureId,
-      points: [],
-      x: 0, // Reset position for inventory
-      y: 0,
-    };
-
-    // Add to global inventory
-    const updatedInventory = {
-      ...appState.furnitureInventory,
-      [furnitureId]: newFurniture,
-    };
-
-    // Create instance in current floor plan
-    const newInstance: FurnitureInstance = {
-      furnitureId,
-      x: furnitureData.x,
-      y: furnitureData.y,
-    };
-
-    const newFloorPlan = {
-      ...appState.floorPlan,
-      furnitureInstances: [
-        ...appState.floorPlan.furnitureInstances,
-        newInstance,
-      ],
-    };
-
-    setAppState(prev => ({
-      ...prev,
-      furnitureInventory: updatedInventory,
-      floorPlan: newFloorPlan,
-    }));
-
-    pushToHistory(newFloorPlan);
-  };
-
-  const handleUpdateFurniture = (
-    furnitureData: Omit<Furniture, 'id' | 'points'>,
-  ) => {
-    if (!appState.selectedRoomId) return;
-
-    // Update the furniture in the global inventory
-    const updatedInventory = {
-      ...appState.furnitureInventory,
-      [appState.selectedRoomId]: {
-        ...appState.furnitureInventory[appState.selectedRoomId],
-        ...furnitureData,
-        id: appState.selectedRoomId,
-        points: [],
-        x: 0, // Keep inventory position at 0,0
-        y: 0,
-      },
-    };
-
-    // Update the instance position if x,y changed
-    const updatedInstances = appState.floorPlan.furnitureInstances.map(
-      instance =>
-        instance.furnitureId === appState.selectedRoomId
-          ? {
-              ...instance,
-              x: furnitureData.x,
-              y: furnitureData.y,
-            }
-          : instance,
-    );
-
-    const newFloorPlan = {
-      ...appState.floorPlan,
-      furnitureInstances: updatedInstances,
-    };
-
-    setAppState(prev => ({
-      ...prev,
-      furnitureInventory: updatedInventory,
-      floorPlan: newFloorPlan,
-    }));
-
-    pushToHistory(newFloorPlan);
-  };
-
-
-
-  const handleDuplicateFurniture = () => {
-    if (!appState.selectedRoomId) return;
-
-    // Find the current instance and furniture
-    const currentInstance = appState.floorPlan.furnitureInstances.find(
-      instance => instance.furnitureId === appState.selectedRoomId,
-    );
-    const furnitureToClone =
-      appState.furnitureInventory[appState.selectedRoomId];
-
-    if (!currentInstance || !furnitureToClone) return;
-
-    // Create new instance (reusing the same furniture from inventory)
-    const newInstance: FurnitureInstance = {
-      furnitureId: appState.selectedRoomId, // Reuse same furniture
-      x: currentInstance.x + 50,
-      y: currentInstance.y + 50,
-    };
-
-    const newFloorPlan = {
-      ...appState.floorPlan,
-      furnitureInstances: [
-        ...appState.floorPlan.furnitureInstances,
-        newInstance,
-      ],
-    };
-
-    pushToHistory(newFloorPlan);
-    setAppState(prev => ({
-      ...prev,
-      floorPlan: newFloorPlan,
-      // Note: We can't select the new instance since it has the same furnitureId
-      // This is a limitation of the current selection system
-    }));
-  };
-
-  const handleSwapDimensions = () => {
-    if (appState.selectedRoomId) {
-      const selectedRoom = appState.floorPlan.rooms.find(
-        room => room.id === appState.selectedRoomId,
-      );
-      const selectedFurniture = (() => {
-        if (!appState.selectedRoomId) return undefined;
-        const instance = appState.floorPlan.furnitureInstances.find(
-          inst => inst.furnitureId === appState.selectedRoomId,
-        );
-        const furniture = appState.furnitureInventory[appState.selectedRoomId];
-        if (!instance || !furniture) return undefined;
-        return {
-          ...furniture,
-          x: instance.x,
-          y: instance.y,
-        };
-      })();
-
-      if (selectedRoom) {
-        const newRoom = {
-          ...selectedRoom,
-          height: selectedRoom.width,
-          width: selectedRoom.height,
-          sqFootage: (selectedRoom.width * selectedRoom.height) / 144,
-        };
-        const newFloorPlan = {
-          ...appState.floorPlan,
-          rooms: appState.floorPlan.rooms.map(room =>
-            room.id === appState.selectedRoomId ? newRoom : room,
-          ),
-        };
-        pushToHistory(newFloorPlan);
-      } else if (selectedFurniture) {
-        // Update furniture in inventory
-        const updatedInventory = {
-          ...appState.furnitureInventory,
-          [appState.selectedRoomId]: {
-            ...appState.furnitureInventory[appState.selectedRoomId],
-            height: selectedFurniture.width,
-            width: selectedFurniture.height,
-          },
-        };
-
-        setAppState(prev => ({
-          ...prev,
-          furnitureInventory: updatedInventory,
-        }));
-
-        const newFloorPlan = appState.floorPlan; // No change to floor plan needed
-        pushToHistory(newFloorPlan);
-      }
-    }
-  };
-
-    const handleDeleteFurniture = useCallback(() => {
-    if (!appState.selectedRoomId) return;
-
-    // Remove the instance from current floor plan (but keep in inventory for reuse)
-    const newFloorPlan = {
-      ...appState.floorPlan,
-      furnitureInstances: appState.floorPlan.furnitureInstances.filter(
-        instance => instance.furnitureId !== appState.selectedRoomId,
-      ),
-    };
-
-    pushToHistory(newFloorPlan);
-    setAppState(prev => ({
-      ...prev,
-      selectedRoomId: null,
-      floorPlan: newFloorPlan,
-    }));
-    setSidebarTab(4); // Switch to Add Furniture tab after deletion
-  }, [appState.selectedRoomId, appState.floorPlan, setAppState, setSidebarTab]);
-
-  const handleDeleteSelected = useCallback(() => {
-    if (!appState.selectedRoomId) return;
-
-    // Check if the selected item is a room
-    const isRoom = appState.floorPlan.rooms.some(
-      room => room.id === appState.selectedRoomId,
-    );
-
-    if (isRoom) {
-      handleDeleteRoom();
-    } else {
-      // It must be furniture
-      handleDeleteFurniture();
-    }
-  }, [appState.selectedRoomId, appState.floorPlan.rooms, handleDeleteRoom, handleDeleteFurniture]);
-
-
-  // Add keyboard shortcuts for undo/redo and delete
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
-        e.preventDefault();
-        if (e.shiftKey) {
-          handleRedo();
-        } else {
-          handleUndo();
-        }
-      } else if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
-        e.preventDefault();
-        handleRedo();
-      } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        e.preventDefault();
-        handleDeleteSelected();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleDeleteSelected]);
-
-  const theme = createTheme({
-    typography: {
-      fontFamily: 'Geist, sans-serif',
-      // fontFeatureSettings: '"rlig", "calt"',
-    },
-    palette: {
-      mode: appState.theme,
-      primary: {
-        main: '#2F4F4F', // Slate green color
-      },
-    },
+  const {
+    handleFloorPlanSelect,
+    handleNameChange,
+    handleDelete,
+    handleNewFloorPlan,
+    handleImageUpload,
+    handleImageScaleChange,
+  } = useFloorPlanManager({
+    floorPlans,
+    setFloorPlans,
+    currentFloorPlanName,
+    setCurrentFloorPlanName,
+    appState,
+    setAppState,
+    pushToHistory,
   });
+
+  const {
+    handleAddRoom,
+    handleUpdateRoom,
+    handleDeleteRoom,
+    handleDuplicateRoom,
+  } = useRoomManager({
+    appState,
+    setAppState,
+    pushToHistory,
+    setSidebarTab,
+  });
+
+  const {
+    handleAddFurniture,
+    handleUpdateFurniture,
+    handleDuplicateFurniture,
+    handleDeleteFurniture,
+  } = useFurnitureManager({
+    appState,
+    setAppState,
+    pushToHistory,
+    setSidebarTab,
+  });
+
+  const {
+    selectedRoom,
+    selectedFurniture,
+    handleRoomSelect,
+    handleRoomMove,
+    handleRoomResize,
+    handleSwapDimensions,
+    handleDeleteSelected,
+    handleTabChange,
+  } = useItemSelection({
+    appState,
+    setAppState,
+    setSidebarTab,
+    pushToHistory,
+    handleDeleteRoom,
+    handleDeleteFurniture,
+  });
+
+  const {
+    handleGridSizeChange,
+    handleGridOpacityChange,
+    handleZoomChange,
+    handleThemeChange,
+    handleWallColorChange,
+    handleHighlightColorChange,
+  } = useAppSettings({
+    appState,
+    setAppState,
+  });
+
+  useKeyboardShortcuts({
+    handleUndo,
+    handleRedo,
+    handleDeleteSelected,
+  });
+
+  const theme = useMemo(
+    () =>
+      createTheme({
+        typography: {
+          fontFamily: 'Geist, sans-serif',
+        },
+        palette: {
+          mode: appState.theme,
+          primary: {
+            main: '#2F4F4F',
+          },
+        },
+      }),
+    [appState.theme],
+  );
 
   return (
     <ThemeProvider theme={theme}>
@@ -931,303 +169,81 @@ function App() {
           onFloorPlanSelect={handleFloorPlanSelect}
           onNewFloorPlan={handleNewFloorPlan}
         />
-        <AppBar position="static" color="default" elevation={1}>
-          <Toolbar variant="dense">
-            <FloorPlanName
-              name={appState.floorPlan.name}
-              onNameChange={handleNameChange}
-              onDelete={handleDelete}
-            />
-            <Box sx={{ width: 16 }} />
-            <GridSettings
-              gridSize={appState.gridSize}
-              onGridSizeChange={handleGridSizeChange}
-            />
-            <Box sx={{ width: 16 }} />
-            <ColorSettings
-              wallColor={appState.wallColor}
-              onWallColorChange={handleWallColorChange}
-              selectedRoomId={appState.selectedRoomId}
-              highlightColor={appState.highlightColor}
-              onHighlightColorChange={handleHighlightColorChange}
-            />
-            <Box sx={{ width: 16 }} />
-            <Tooltip title="Undo (⌘Z)">
-              <span>
-                <IconButton
-                  onClick={handleUndo}
-                  disabled={appState.historyIndex === 0}>
-                  <UndoIcon />
-                </IconButton>
-              </span>
-            </Tooltip>
-            <Tooltip title="Redo (⌘⇧Z)">
-              <span>
-                <IconButton
-                  onClick={handleRedo}
-                  disabled={
-                    appState.historyIndex === appState.history.length - 1
-                  }>
-                  <RedoIcon />
-                </IconButton>
-              </span>
-            </Tooltip>
-            <Box sx={{ flexGrow: 1 }} />
-            <ZoomControls
-              zoom={appState.zoom}
-              onZoomChange={handleZoomChange}
-            />
-            <Box sx={{ width: 16 }} />
-            <ImageSettings
-              onImageUpload={handleImageUpload}
-              imageScale={appState.floorPlan.imageScale}
-              onImageScaleChange={handleImageScaleChange}
-            />
-            <Box sx={{ width: 16 }} />
-            <Settings
-              gridOpacity={appState.gridOpacity}
-              onGridOpacityChange={handleGridOpacityChange}
-            />
-            <Box sx={{ width: 16 }} />
-            <ThemeSwitcher
-              theme={appState.theme}
-              onThemeChange={handleThemeChange}
-            />
-          </Toolbar>
-        </AppBar>
+        <MainToolbar
+          floorPlanName={appState.floorPlan.name}
+          onNameChange={handleNameChange}
+          onDelete={handleDelete}
+          gridSize={appState.gridSize}
+          onGridSizeChange={handleGridSizeChange}
+          wallColor={appState.wallColor}
+          onWallColorChange={handleWallColorChange}
+          selectedRoomId={appState.selectedRoomId}
+          highlightColor={appState.highlightColor}
+          onHighlightColorChange={handleHighlightColorChange}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          zoom={appState.zoom}
+          onZoomChange={handleZoomChange}
+          onImageUpload={handleImageUpload}
+          imageScale={appState.floorPlan.imageScale}
+          onImageScaleChange={handleImageScaleChange}
+          gridOpacity={appState.gridOpacity}
+          onGridOpacityChange={handleGridOpacityChange}
+          theme={appState.theme}
+          onThemeChange={handleThemeChange}
+        />
         <Box sx={{ flexGrow: 1, display: 'flex' }}>
-          <Box
-            sx={{
-              width: isLeftPanelOpen ? 300 : 0,
-              borderRight: 1,
-              borderColor: 'divider',
-              transition: 'width 0.2s',
-              overflow: 'hidden',
-              position: 'relative',
-            }}>
-            <IconButton
-              onClick={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
-              sx={{
-                'position': 'absolute',
-                'right': -20,
-                'top': '50%',
-                'transform': 'translateY(-50%)',
-                'backgroundColor': 'background.paper',
-                'border': 1,
-                'borderColor': 'divider',
-                '&:hover': {
-                  backgroundColor: 'action.hover',
-                },
-              }}>
-              {isLeftPanelOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-            </IconButton>
-          </Box>
-          <Box sx={{ flexGrow: 1, position: 'relative' }}>
-            <LayoutEditor
-              rooms={appState.floorPlan.rooms}
-              furniture={getFurnitureFromInstances(
-                appState.floorPlan.furnitureInstances || [],
-                appState.furnitureInventory,
-              )}
-              selectedRoomId={appState.selectedRoomId}
-              onRoomSelect={handleRoomSelect}
-              onRoomMove={handleRoomMove}
-              onRoomResize={handleRoomResize}
-              gridSize={appState.gridSize}
-              zoom={appState.zoom}
-              backgroundImage={appState.floorPlan.backgroundImage}
-              imageScale={appState.floorPlan.imageScale}
-              gridOpacity={appState.gridOpacity}
-              wallColor={appState.wallColor}
-              highlightColor={appState.highlightColor}
-            />
-          </Box>
-          <Box
-            sx={{
-              width: 400,
-              borderLeft: 1,
-              borderColor: 'divider',
-              display: 'flex',
-              flexDirection: 'column',
-            }}>
-            <Tabs
-              value={sidebarTab}
-              onChange={handleTabChange}
-              variant="scrollable"
-              scrollButtons="auto"
-              sx={{
-                'minHeight': 48,
-                '& .MuiTabs-flexContainer': {
-                  justifyContent: 'space-around',
-                },
-                '& .MuiTab-root': {
-                  minWidth: 'auto',
-                  flex: 1,
-                },
-              }}>
-              <Tooltip title="Add Room">
-                <Tab icon={<AddIcon />} aria-label="Add Room" />
-              </Tooltip>
-              <Tooltip title="Room Details">
-                <Tab icon={<EditIcon />} aria-label="Room Details" />
-              </Tooltip>
-              <Tooltip title="Floor Plan Details">
-                <Tab icon={<InfoIcon />} aria-label="Floor Plan Details" />
-              </Tooltip>
-              <Tooltip title="Room List">
-                <Tab icon={<ListIcon />} aria-label="Room List" />
-              </Tooltip>
-              <Tooltip title="Add Furniture">
-                <Tab icon={<ChairIcon />} aria-label="Add Furniture" />
-              </Tooltip>
-            </Tabs>
-            <Box sx={{ flex: 1, overflow: 'auto' }}>
-              {sidebarTab === 0 && <RoomForm onSubmit={handleAddRoom} />}
-              {sidebarTab === 1 && (
-                <>
-                  {selectedRoom ? (
-                    appState.selectedTool === 'edit' ? (
-                      <Box>
-                        <Box
-                          sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <IconButton
-                            onClick={() =>
-                              setAppState(prev => ({
-                                ...prev,
-                                selectedTool: 'select',
-                              }))
-                            }
-                            sx={{ mr: 1 }}>
-                            <ChevronLeftIcon />
-                          </IconButton>
-                          <Typography variant="h6">Edit Room</Typography>
-                        </Box>
-                        <RoomForm
-                          onSubmit={handleUpdateRoom}
-                          initialValues={selectedRoom}
-                          onDelete={handleDeleteRoom}
-                          onDuplicate={handleDuplicateRoom}
-                        />
-                      </Box>
-                    ) : (
-                      <RoomDetails
-                        room={selectedRoom}
-                        onEdit={() => {
-                          setAppState(prev => ({
-                            ...prev,
-                            selectedTool: 'edit',
-                          }));
-                        }}
-                        onSwapDimensions={handleSwapDimensions}
-                      />
-                    )
-                  ) : selectedFurniture ? (
-                    appState.selectedTool === 'edit' ? (
-                      <Box>
-                        <Box
-                          sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <IconButton
-                            onClick={() =>
-                              setAppState(prev => ({
-                                ...prev,
-                                selectedTool: 'select',
-                              }))
-                            }
-                            sx={{ mr: 1 }}>
-                            <ChevronLeftIcon />
-                          </IconButton>
-                          <Typography variant="h6">Edit Furniture</Typography>
-                        </Box>
-                        <FurnitureForm
-                          onSubmit={handleUpdateFurniture}
-                          initialValues={selectedFurniture}
-                          onDelete={handleDeleteFurniture}
-                          onDuplicate={handleDuplicateFurniture}
-                        />
-                      </Box>
-                    ) : (
-                      <RoomDetails
-                        room={selectedFurniture}
-                        onEdit={() => {
-                          setAppState(prev => ({
-                            ...prev,
-                            selectedTool: 'edit',
-                          }));
-                        }}
-                        onSwapDimensions={handleSwapDimensions}
-                      />
-                    )
-                  ) : (
-                    <RoomDetails room={null} />
-                  )}
-                </>
-              )}
-              {sidebarTab === 2 && (
-                <FloorPlanDetails floorPlan={appState.floorPlan} />
-              )}
-              {sidebarTab === 3 && (
-                <>
-                  <RoomList
-                    rooms={appState.floorPlan.rooms}
-                    selectedRoomId={appState.selectedRoomId}
-                    onRoomSelect={handleRoomSelect}
-                  />
-                  <Divider />
-                  <FurnitureList
-                    furniture={getFurnitureFromInstances(
-                      appState.floorPlan.furnitureInstances || [],
-                      appState.furnitureInventory,
-                    )}
-                    selectedRoomId={appState.selectedRoomId}
-                    onRoomSelect={handleRoomSelect}
-                  />
-                </>
-              )}
-              {sidebarTab === 4 && (
-                <>
-                  {selectedRoom ? (
-                    appState.selectedTool === 'edit' ? (
-                      <Box>
-                        <Box
-                          sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <IconButton
-                            onClick={() =>
-                              setAppState(prev => ({
-                                ...prev,
-                                selectedTool: 'select',
-                              }))
-                            }
-                            sx={{ mr: 1 }}>
-                            <ChevronLeftIcon />
-                          </IconButton>
-                          <Typography variant="h6">Edit Furniture</Typography>
-                        </Box>
-                        <FurnitureForm
-                          onSubmit={handleUpdateFurniture}
-                          initialValues={selectedRoom}
-                          onDelete={handleDeleteFurniture}
-                          onDuplicate={handleDuplicateFurniture}
-                        />
-                      </Box>
-                    ) : (
-                      <RoomDetails
-                        room={selectedRoom}
-                        onEdit={() => {
-                          setAppState(prev => ({
-                            ...prev,
-                            selectedTool: 'edit',
-                          }));
-                        }}
-                        onSwapDimensions={handleSwapDimensions}
-                      />
-                    )
-                  ) : (
-                    <FurnitureForm onSubmit={handleAddFurniture} />
-                  )}
-                </>
-              )}
-            </Box>
-          </Box>
+          <LeftPanel
+            isOpen={isLeftPanelOpen}
+            onToggle={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
+          />
+          <MainContent
+            rooms={appState.floorPlan.rooms}
+            furniture={getFurnitureFromInstances(
+              appState.floorPlan.furnitureInstances || [],
+              appState.furnitureInventory,
+            )}
+            selectedRoomId={appState.selectedRoomId}
+            onRoomSelect={handleRoomSelect}
+            onRoomMove={handleRoomMove}
+            onRoomResize={handleRoomResize}
+            gridSize={appState.gridSize}
+            zoom={appState.zoom}
+            backgroundImage={appState.floorPlan.backgroundImage}
+            imageScale={appState.floorPlan.imageScale}
+            gridOpacity={appState.gridOpacity}
+            wallColor={appState.wallColor}
+            highlightColor={appState.highlightColor}
+          />
+          <RightSidebar
+            sidebarTab={sidebarTab}
+            onTabChange={handleTabChange}
+            selectedRoom={selectedRoom}
+            selectedFurniture={selectedFurniture}
+            selectedTool={appState.selectedTool}
+            onToolChange={tool =>
+              setAppState(prev => ({ ...prev, selectedTool: tool }))
+            }
+            rooms={appState.floorPlan.rooms}
+            furniture={getFurnitureFromInstances(
+              appState.floorPlan.furnitureInstances || [],
+              appState.furnitureInventory,
+            )}
+            selectedRoomId={appState.selectedRoomId}
+            onRoomSelect={handleRoomSelect}
+            onAddRoom={handleAddRoom}
+            onUpdateRoom={handleUpdateRoom}
+            onDeleteRoom={handleDeleteRoom}
+            onDuplicateRoom={handleDuplicateRoom}
+            onAddFurniture={handleAddFurniture}
+            onUpdateFurniture={handleUpdateFurniture}
+            onDeleteFurniture={handleDeleteFurniture}
+            onDuplicateFurniture={handleDuplicateFurniture}
+            onSwapDimensions={handleSwapDimensions}
+            floorPlan={appState.floorPlan}
+          />
         </Box>
       </Box>
     </ThemeProvider>
