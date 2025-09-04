@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Typography, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { Room } from '@/lib/types';
 import { BaseForm } from './BaseForm';
@@ -6,7 +6,7 @@ import { BaseFormData } from './BaseForm';
 
 interface RoomFormProps {
   onSubmit: (room: Omit<Room, 'id' | 'points'>) => void;
-  initialValues?: Partial<BaseFormData>;
+  initialValues?: Partial<BaseFormData & { livability?: 'livable' | 'non-livable' | 'outdoor' }>;
   onDelete?: () => void;
   onDuplicate?: () => void;
 }
@@ -17,30 +17,30 @@ export const RoomForm: React.FC<RoomFormProps> = ({
   onDelete,
   onDuplicate,
 }) => {
+  const [livability, setLivability] = useState<'livable' | 'non-livable' | 'outdoor'>(
+    (initialValues?.livability as 'livable' | 'non-livable' | 'outdoor') || 'livable'
+  );
   const handleSubmit = (data: any) => {
     onSubmit({
       name: data.name,
       height: data.height,
       width: data.width,
       sqFootage: (data.height * data.width) / 144,
-      livability: data.livability,
+      livability: livability,
       x: data.x,
       y: data.y,
     });
   };
 
-  const getlivabilitySection = (
-    value: string,
-    onChange: (field: string, value: any) => void,
-  ) => (
+  const livabilitySection = (
     <>
       <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
         Room Type
       </Typography>
       <ToggleButtonGroup
-        value={value}
+        value={livability}
         exclusive
-        onChange={(_, newValue) => newValue && onChange('livability', newValue)}
+        onChange={(_, newValue) => newValue && setLivability(newValue)}
         fullWidth
         sx={{ mb: 2 }}>
         <ToggleButton value="livable">Livable</ToggleButton>
@@ -57,10 +57,7 @@ export const RoomForm: React.FC<RoomFormProps> = ({
       onSubmit={handleSubmit}
       onDelete={onDelete}
       onDuplicate={onDuplicate}
-      additionalFields={getlivabilitySection}
-      additionalFormData={{
-        livability: initialValues?.livability || 'livable',
-      }}
+      additionalFields={livabilitySection}
     />
   );
 };

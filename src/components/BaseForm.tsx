@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, ReactNode } from 'react';
+import React, { useState, ReactNode, useCallback, useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
 import { CompactTextField } from './ui/CompactTextField';
 import { DimensionSelector, DimensionValues } from './ui/DimensionSelector';
@@ -18,8 +18,6 @@ const DEFAULTS_BY_LABEL = {
   },
 };
 
-const calculateFeet = (inches: number) => Math.floor(inches / 12);
-const calculateInches = (inches: number) => inches % 12;
 const generateX = () => window.innerWidth / 2;
 const generateY = () => window.innerHeight / 2;
 const generateName = (label: string) => {
@@ -37,19 +35,19 @@ const generateDefaultValues = (label: 'Room' | 'Furniture') => {
   };
 };
 
-const calculateFeetAndInches = (values: { height: number; width: number }) => {
-  const heightFeet = calculateFeet(values.height);
-  const heightInches = calculateInches(values.height);
-  const widthFeet = calculateFeet(values.width);
-  const widthInches = calculateInches(values.width);
-  return { heightFeet, heightInches, widthFeet, widthInches };
+const formatInitialValues = (initialValues: Partial<BaseFormData>) => {
+  return {
+    ...initialValues,
+    ...formatInitialDimensions(initialValues.height, initialValues.width),
+  };
 };
 
 export interface BaseFormData extends DimensionValues {
   name: string;
   x: number;
   y: number;
-  [key: string]: any;
+  height: number;
+  width: number;
 }
 
 interface BaseFormProps {
@@ -58,14 +56,7 @@ interface BaseFormProps {
   onSubmit: (data: any) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
-  additionalFields?:
-    | ReactNode
-    | ((
-        formData: any,
-        onChange: (field: string, value: any) => void,
-      ) => ReactNode);
-  additionalFormData?: { type?: string } | { livability?: string };
-  onAdditionalFieldChange?: (field: string, value: any) => void;
+  additionalFields?: ReactNode;
 }
 
 export const BaseForm: React.FC<BaseFormProps> = ({
@@ -75,69 +66,43 @@ export const BaseForm: React.FC<BaseFormProps> = ({
   onDelete,
   onDuplicate,
   additionalFields,
-  additionalFormData = {},
-  onAdditionalFieldChange,
 }) => {
-  const values = {
-    ...generateDefaultValues(label),
-    ...initialValues,
-  };
-
-  const feetAndInches = calculateFeetAndInches(values);
-
   const [formData, setFormData] = useState<BaseFormData>({
-    ...values,
-    ...feetAndInches,
-    ...additionalFormData,
+    ...generateDefaultValues(label),
+    ...formatInitialValues(initialValues),
   });
 
-  useEffect(() => {
-    if (initialValues) {
-      setFormData(prev => ({
-        ...prev,
-        name: initialValues.name || prev.name,
-        ...formatInitialDimensions(initialValues.height, initialValues.width),
-        x: initialValues.x || prev.x,
-        y: initialValues.y || prev.y,
-      }));
-    }
-  }, [initialValues]);
+  const { height, width } = formData;
 
-  useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      ...additionalFormData,
-    }));
-  }, [additionalFormData]);
+  const [dimensions, setDimensions] = useState<DimensionValues>(
+    formatInitialDimensions(height, width),
+  );
 
+  const { name, x, y } = formData;
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const totalHeight = formData.heightFeet * 12 + formData.heightInches;
-    const totalWidth = formData.widthFeet * 12 + formData.widthInches;
-
-    const {
-      heightFeet,
-      heightInches,
-      widthFeet,
-      widthInches,
-      ...otherFormData
-    } = formData;
+    const totalHeight = dimensions.heightFeet * 12 + dimensions.heightInches;
+    const totalWidth = dimensions.widthFeet * 12 + dimensions.widthInches;
 
     onSubmit({
-      ...otherFormData,
+      name,
       height: totalHeight,
       width: totalWidth,
-      x: initialValues?.x || formData.x,
-      y: initialValues?.y || formData.y,
+      x,
+      y,
     });
   };
 
-  const handleFieldChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (onAdditionalFieldChange) {
-      onAdditionalFieldChange(field, value);
-    }
-  };
+  const handleDimensionChange = useCallback((dimensions: DimensionValues) => {
+    setFormData(prev => ({ ...prev, ...dimensions }));
+  }, []);
+
+  const handleNameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormData(prev => ({ ...prev, name: e.target.value }));
+    },
+    [],
+  );
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ p: 2 }}>
@@ -148,25 +113,13 @@ export const BaseForm: React.FC<BaseFormProps> = ({
       <CompactTextField
         label="Name"
         value={formData.name}
-        onChange={e => handleFieldChange('name', e.target.value)}
+        onChange={handleNameChange}
         required
       />
 
-      {typeof additionalFields === 'function'
-        ? additionalFields(formData, handleFieldChange)
-        : additionalFields}
+      {additionalFields}
 
-      <DimensionSelector
-        initialValues={{
-          heightFeet: formData.heightFeet,
-          heightInches: formData.heightInches,
-          widthFeet: formData.widthFeet,
-          widthInches: formData.widthInches,
-        }}
-        onChange={(dimensions: DimensionValues) =>
-          setFormData(prev => ({ ...prev, ...dimensions }))
-        }
-      />
+      <DimensionSelector values={dimensions} onChange={handleDimensionChange} />
 
       {initialValues && (
         <Typography

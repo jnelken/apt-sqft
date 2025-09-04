@@ -12,28 +12,34 @@ export interface DimensionValues {
 }
 
 interface DimensionSelectorProps {
-  initialValues: DimensionValues;
+  values: DimensionValues;
   onChange: (dimensions: DimensionValues) => void;
 }
 
-export const DimensionSelector: React.FC<DimensionSelectorProps> = ({
-  initialValues,
+const swapDimensions = (d: DimensionValues): DimensionValues => {
+  return {
+    heightFeet: d.widthFeet,
+    heightInches: d.widthInches,
+    widthFeet: d.heightFeet,
+    widthInches: d.heightInches,
+  };
+};
+
+export const DimensionSelector = ({
+  values,
   onChange,
-}) => {
+}: DimensionSelectorProps) => {
   const updateDimension = (key: keyof DimensionValues, value: number) => {
-    const newDimensions = { ...initialValues, [key]: value };
+    const newDimensions = { ...values, [key]: value };
     onChange(newDimensions);
   };
 
   const handleSwapDimensions = () => {
-    const newDimensions: DimensionValues = {
-      heightFeet: initialValues.widthFeet,
-      heightInches: initialValues.widthInches,
-      widthFeet: initialValues.heightFeet,
-      widthInches: initialValues.heightInches,
-    };
+    const newDimensions = swapDimensions(values);
     onChange(newDimensions);
   };
+
+  const { heightFeet, heightInches, widthFeet, widthInches } = values;
 
   return (
     <>
@@ -52,7 +58,7 @@ export const DimensionSelector: React.FC<DimensionSelectorProps> = ({
         <CompactTextField
           label="Feet"
           type="number"
-          value={initialValues.heightFeet}
+          value={heightFeet}
           onChange={e =>
             updateDimension('heightFeet', Math.max(0, Number(e.target.value)))
           }
@@ -62,7 +68,7 @@ export const DimensionSelector: React.FC<DimensionSelectorProps> = ({
         <CompactTextField
           label="Inches"
           type="number"
-          value={initialValues.heightInches}
+          value={heightInches}
           onChange={e =>
             updateDimension(
               'heightInches',
@@ -89,7 +95,7 @@ export const DimensionSelector: React.FC<DimensionSelectorProps> = ({
         <CompactTextField
           label="Feet"
           type="number"
-          value={initialValues.widthFeet}
+          value={widthFeet}
           onChange={e =>
             updateDimension('widthFeet', Math.max(0, Number(e.target.value)))
           }
@@ -99,7 +105,7 @@ export const DimensionSelector: React.FC<DimensionSelectorProps> = ({
         <CompactTextField
           label="Inches"
           type="number"
-          value={initialValues.widthInches}
+          value={widthInches}
           onChange={e =>
             updateDimension(
               'widthInches',
