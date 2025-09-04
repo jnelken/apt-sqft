@@ -11,19 +11,3 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
-
-/* * {
-  animation: debug-flash 0.2s ease-in-out;
-} */
-
-@keyframes debug-flash {
-  0% {
-    background-color: transparent;
-  }
-  50% {
-    background-color: rgba(255, 0, 0, 0.1);
-  }
-  100% {
-    background-color: transparent;
-  }
-}
