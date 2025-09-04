@@ -85,15 +85,27 @@ export const useLocalStoragePersistence = ({
 
 // Helper function to initialize state from localStorage
 export const initializeStateFromStorage = () => {
-  // Initialize floor plans
+  // Initialize floor plans with safe parsing
   const savedFloorPlans = localStorage.getItem('floorPlans');
-  const floorPlans = savedFloorPlans
-    ? JSON.parse(savedFloorPlans)
-    : { Untitled: initialFloorPlan };
+  let floorPlans: { [key: string]: FloorPlan } = { Untitled: initialFloorPlan };
+  if (savedFloorPlans) {
+    try {
+      const parsed = JSON.parse(savedFloorPlans);
+      if (parsed && typeof parsed === 'object') {
+        floorPlans = parsed;
+      }
+    } catch (e) {
+      console.warn('Error parsing saved floorPlans, using default:', e);
+      localStorage.removeItem('floorPlans');
+    }
+  }
 
   // Initialize current floor plan name
   const savedCurrentName = localStorage.getItem('currentFloorPlanName');
-  const currentFloorPlanName = savedCurrentName || 'Untitled';
+  const currentFloorPlanName =
+    savedCurrentName && floorPlans[savedCurrentName]
+      ? savedCurrentName
+      : 'Untitled';
 
   // Initialize app state
   const savedState = localStorage.getItem('appState');

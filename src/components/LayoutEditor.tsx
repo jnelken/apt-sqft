@@ -360,11 +360,13 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
 
           // Adjust position for west and north walls after snapping
           if (resizeWall === 'w') {
-            const widthDiff = snappedWidth - selectedItem.width;
+            // When width decreases after snapping, x should move right (dx positive); when it increases, x moves left (dx negative)
+            const widthDiff = selectedItem.width - snappedWidth;
             snappedX = selectedItem.x + widthDiff;
           }
           if (resizeWall === 'n') {
-            const heightDiff = snappedHeight - selectedItem.height;
+            // When height decreases after snapping, y should move down (dy positive); when it increases, y moves up (dy negative)
+            const heightDiff = selectedItem.height - snappedHeight;
             snappedY = selectedItem.y + heightDiff;
           }
 
