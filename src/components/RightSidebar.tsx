@@ -203,7 +203,7 @@ export function RightSidebar({
         )}
         {sidebarTab === 4 && (
           <>
-            {selectedRoom ? (
+            {selectedFurniture ? (
               selectedTool === 'edit' ? (
                 <Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -216,14 +216,14 @@ export function RightSidebar({
                   </Box>
                   <FurnitureForm
                     onSubmit={handleUpdateFurniture}
-                    initialValues={selectedRoom}
+                    initialValues={selectedFurniture}
                     onDelete={handleDeleteFurniture}
                     onDuplicate={handleDuplicateFurniture}
                   />
                 </Box>
               ) : (
                 <RoomDetails
-                  room={selectedRoom}
+                  room={selectedFurniture}
                   onEdit={() => onToolChange('edit')}
                   onSwapDimensions={onSwapDimensions}
                 />
