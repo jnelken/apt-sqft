@@ -153,7 +153,9 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Box
+        sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}
+        className={process.env.NODE_ENV === 'development' ? 'DEBUG_MODE' : ''}>
         <FloorPlanTabs
           floorPlans={floorPlans}
           currentFloorPlanName={currentFloorPlanName}
