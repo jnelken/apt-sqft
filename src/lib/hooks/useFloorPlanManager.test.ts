@@ -28,7 +28,8 @@ const createMockAppState = (floorPlan?: FloorPlan): AppState => ({
 // Mock FileReader
 class MockFileReader {
   result: string | ArrayBuffer | null = null;
-  onload: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
+  // Loosen typing for test shim to satisfy TS strict mode
+  onload: ((this: any, ev: any) => any) | null = null;
 
   readAsDataURL(file: Blob) {
     this.result = 'data:image/png;base64,mockBase64Data';
@@ -67,7 +68,9 @@ describe('useFloorPlanManager', () => {
     };
 
     const props = { ...defaultProps, floorPlans };
-    const { result: updatedResult } = renderHook(() => useFloorPlanManager(props));
+    const { result: updatedResult } = renderHook(() =>
+      useFloorPlanManager(props),
+    );
 
     act(() => {
       updatedResult.current.handleFloorPlanSelect('Plan 2');
@@ -85,10 +88,20 @@ describe('useFloorPlanManager', () => {
       result.current.handleNameChange('New Plan Name');
     });
 
-    expect(defaultProps.setFloorPlans).toHaveBeenCalledWith({"New Plan Name": {"backgroundImage": null, "furnitureInstances": [], "imageScale": 1, "name": "New Plan Name", "rooms": []}});
-    expect(defaultProps.setCurrentFloorPlanName).toHaveBeenCalledWith('New Plan Name');
+    expect(defaultProps.setFloorPlans).toHaveBeenCalledWith({
+      'New Plan Name': {
+        backgroundImage: null,
+        furnitureInstances: [],
+        imageScale: 1,
+        name: 'New Plan Name',
+        rooms: [],
+      },
+    });
+    expect(defaultProps.setCurrentFloorPlanName).toHaveBeenCalledWith(
+      'New Plan Name',
+    );
     expect(defaultProps.pushToHistory).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'New Plan Name' })
+      expect.objectContaining({ name: 'New Plan Name' }),
     );
   });
 
@@ -111,7 +124,7 @@ describe('useFloorPlanManager', () => {
 
     // Should be called with the updated floor plans object
     expect(props.setFloorPlans).toHaveBeenCalled();
-    
+
     // The floor plans should have been updated with the new name
     const setFloorPlansCall = props.setFloorPlans.mock.calls[0][0];
     expect(setFloorPlansCall).toHaveProperty('New Name');
@@ -135,7 +148,15 @@ describe('useFloorPlanManager', () => {
       result.current.handleDelete();
     });
 
-    expect(props.setFloorPlans).toHaveBeenCalledWith({"Plan 2": {"backgroundImage": null, "furnitureInstances": [], "imageScale": 1, "name": "Plan 2", "rooms": []}});
+    expect(props.setFloorPlans).toHaveBeenCalledWith({
+      'Plan 2': {
+        backgroundImage: null,
+        furnitureInstances: [],
+        imageScale: 1,
+        name: 'Plan 2',
+        rooms: [],
+      },
+    });
     expect(props.setCurrentFloorPlanName).toHaveBeenCalledWith('Plan 2');
     expect(props.setAppState).toHaveBeenCalled();
   });
@@ -160,7 +181,7 @@ describe('useFloorPlanManager', () => {
 
   test('handleNewFloorPlan creates unique name and switches to new plan', () => {
     const floorPlans = {
-      'Untitled': createMockFloorPlan('Untitled'),
+      Untitled: createMockFloorPlan('Untitled'),
       'Untitled 1': createMockFloorPlan('Untitled 1'),
     };
     const props = { ...defaultProps, floorPlans };
@@ -177,19 +198,21 @@ describe('useFloorPlanManager', () => {
   });
 
   test('handleImageUpload processes file and updates floor plan', async () => {
-    const mockFile = new File(['mock image'], 'test.png', { type: 'image/png' });
-    
+    const mockFile = new File(['mock image'], 'test.png', {
+      type: 'image/png',
+    });
+
     // Create props with floorPlan name 'Untitled' so it gets renamed to file name
     const floorPlan = createMockFloorPlan('Untitled');
     const appState = createMockAppState(floorPlan);
     const props = { ...defaultProps, appState };
-    
+
     const { result } = renderHook(() => useFloorPlanManager(props));
 
     await act(async () => {
       result.current.handleImageUpload(mockFile);
       // Wait for FileReader to process
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
     expect(props.setFloorPlans).toHaveBeenCalled();
@@ -202,12 +225,14 @@ describe('useFloorPlanManager', () => {
     const appState = createMockAppState(floorPlan);
     const props = { ...defaultProps, appState };
 
-    const mockFile = new File(['mock image'], 'test.png', { type: 'image/png' });
+    const mockFile = new File(['mock image'], 'test.png', {
+      type: 'image/png',
+    });
     const { result } = renderHook(() => useFloorPlanManager(props));
 
     await act(async () => {
       result.current.handleImageUpload(mockFile);
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
     // Should keep the existing name 'My Plan', not use 'test'
