@@ -6,15 +6,17 @@ import App from './App';
 const createMockStorage = () => {
   let storage: Record<string, string> = {};
   return {
-    getItem: (key: string) => key in storage ? storage[key] : null,
-    setItem: (key: string, value: string) => storage[key] = value || '',
+    getItem: (key: string) => (key in storage ? storage[key] : null),
+    setItem: (key: string, value: string) => (storage[key] = value || ''),
     removeItem: (key: string) => delete storage[key],
-    get length() { return Object.keys(storage).length; },
+    get length() {
+      return Object.keys(storage).length;
+    },
     key: (i: number) => {
       const keys = Object.keys(storage);
       return keys[i] || null;
     },
-    clear: () => storage = {}
+    clear: () => (storage = {}),
   };
 };
 
@@ -35,9 +37,11 @@ describe('App Component', () => {
     expect(floorPlanName).toBeInTheDocument();
 
     // Check that main UI elements are present
-    expect(screen.getByText('Grid Size')).toBeInTheDocument();
     expect(screen.getByLabelText('Add Room')).toBeInTheDocument();
-    expect(screen.getByLabelText('Room Details')).toBeInTheDocument();
+    expect(screen.getByLabelText('Edit')).toBeInTheDocument();
+    expect(screen.getByLabelText('Floor Plan Details')).toBeInTheDocument();
+    expect(screen.getByLabelText('Room List')).toBeInTheDocument();
+    expect(screen.getByLabelText('Add Furniture')).toBeInTheDocument();
   });
 
   test('allows adding a new room', () => {
@@ -66,8 +70,8 @@ describe('App Component', () => {
   test('allows switching between sidebar tabs', () => {
     render(<App />);
 
-    // Test Room Details tab
-    const roomDetailsTab = screen.getByLabelText('Room Details');
+    // Test Edit tab
+    const roomDetailsTab = screen.getByLabelText('Edit');
     fireEvent.click(roomDetailsTab);
 
     expect(screen.getByText('No room selected')).toBeInTheDocument();

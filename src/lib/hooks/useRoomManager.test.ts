@@ -9,7 +9,7 @@ const mockEditorElement = {
 };
 
 Object.defineProperty(document, 'querySelector', {
-  value: jest.fn((selector) => {
+  value: jest.fn(selector => {
     if (selector === '.LayoutEditor') {
       return mockEditorElement;
     }
@@ -37,7 +37,10 @@ const createMockFloorPlan = (rooms: Room[] = []): FloorPlan => ({
   imageScale: 1,
 });
 
-const createMockAppState = (rooms: Room[] = [], selectedRoomId: string | null = null): AppState => ({
+const createMockAppState = (
+  rooms: Room[] = [],
+  selectedRoomId: string | null = null,
+): AppState => ({
   floorPlan: createMockFloorPlan(rooms),
   furnitureInventory: {},
   selectedRoomId,
@@ -90,10 +93,10 @@ describe('useRoomManager', () => {
     });
 
     expect(defaultProps.setAppState).toHaveBeenCalledWith(expect.any(Function));
-    
+
     const setAppStateCall = defaultProps.setAppState.mock.calls[0][0];
     const newState = setAppStateCall(defaultProps.appState);
-    
+
     const addedRoom = newState.floorPlan.rooms[0];
     expect(addedRoom).toEqual({
       ...roomData,
@@ -125,7 +128,7 @@ describe('useRoomManager', () => {
     const setAppStateCall = defaultProps.setAppState.mock.calls[0][0];
     const newState = setAppStateCall(defaultProps.appState);
     const addedRoom = newState.floorPlan.rooms[0];
-    
+
     expect(addedRoom.sqFootage).toBe(208); // Math.round((200 * 150) / 144)
   });
 
@@ -150,15 +153,17 @@ describe('useRoomManager', () => {
       result.current.handleUpdateRoom(updatedData);
     });
 
-    expect(props.setAppState).toHaveBeenCalledWith(expect.any(Function));
-    
+    expect(props.setAppState).toHaveBeenCalled();
+
     const setAppStateCall = props.setAppState.mock.calls[0][0];
     const newState = setAppStateCall(props.appState);
-    
+
     const updatedRoom = newState.floorPlan.rooms[0];
     expect(updatedRoom).toEqual({
       ...existingRoom,
       ...updatedData,
+      x: 100, // do not overwrite the x and y values; we have a separate function for that
+      y: 100,
       sqFootage: 200, // Math.round((160 * 180) / 144)
     });
   });
@@ -172,8 +177,8 @@ describe('useRoomManager', () => {
       width: 160,
       sqFootage: 0,
       livability: 'livable' as const,
-      x: 200,
-      y: 200,
+      x: 200, // do not overwrite the x and y values; we have a separate function for that
+      y: 200, // do not overwrite the x and y values; we have a separate function for that
     };
 
     act(() => {
@@ -230,12 +235,12 @@ describe('useRoomManager', () => {
     });
 
     expect(props.setAppState).toHaveBeenCalledWith(expect.any(Function));
-    
+
     const setAppStateCall = props.setAppState.mock.calls[0][0];
     const newState = setAppStateCall(props.appState);
-    
+
     expect(newState.floorPlan.rooms).toHaveLength(2);
-    
+
     const duplicatedRoom = newState.floorPlan.rooms[1];
     expect(duplicatedRoom).toEqual({
       ...existingRoom,
@@ -245,7 +250,7 @@ describe('useRoomManager', () => {
       y: 150, // original y + 50
       points: [],
     });
-    
+
     expect(newState.selectedRoomId).toBe('12345');
   });
 
