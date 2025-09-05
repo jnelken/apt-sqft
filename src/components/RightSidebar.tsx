@@ -113,8 +113,8 @@ export function RightSidebar({
         <Tooltip title="Add Room">
           <Tab icon={<AddIcon />} aria-label="Add Room" />
         </Tooltip>
-        <Tooltip title="Room Details">
-          <Tab icon={<EditIcon />} aria-label="Room Details" />
+        <Tooltip title="Edit">
+          <Tab icon={<EditIcon />} aria-label="Edit" />
         </Tooltip>
         <Tooltip title="Floor Plan Details">
           <Tab icon={<InfoIcon />} aria-label="Floor Plan Details" />
@@ -150,7 +150,7 @@ export function RightSidebar({
                 </Box>
               ) : (
                 <RoomDetails
-                  room={selectedRoom}
+                  room={selectedRoom ?? null}
                   onEdit={() => onToolChange('edit')}
                   onSwapDimensions={onSwapDimensions}
                 />
@@ -175,7 +175,7 @@ export function RightSidebar({
                 </Box>
               ) : (
                 <RoomDetails
-                  room={selectedFurniture}
+                  room={selectedRoom ?? null}
                   onEdit={() => onToolChange('edit')}
                   onSwapDimensions={onSwapDimensions}
                 />
@@ -222,11 +222,7 @@ export function RightSidebar({
                   />
                 </Box>
               ) : (
-                <RoomDetails
-                  room={selectedFurniture}
-                  onEdit={() => onToolChange('edit')}
-                  onSwapDimensions={onSwapDimensions}
-                />
+                <RoomDetails room={null} />
               )
             ) : (
               <FurnitureForm onSubmit={handleAddFurniture} />

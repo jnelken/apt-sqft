@@ -26,19 +26,15 @@ const generateName = (label: string) => {
 };
 
 const generateDefaultValues = (label: 'Room' | 'Furniture') => {
+  const height = DEFAULTS_BY_LABEL[label].height;
+  const width = DEFAULTS_BY_LABEL[label].width;
   return {
     name: generateName(label),
-    height: DEFAULTS_BY_LABEL[label].height,
-    width: DEFAULTS_BY_LABEL[label].width,
+    height,
+    width,
+    ...formatInitialDimensions(height, width),
     x: generateX(),
     y: generateY(),
-  };
-};
-
-const formatInitialValues = (initialValues: Partial<BaseFormData>) => {
-  return {
-    ...initialValues,
-    ...formatInitialDimensions(initialValues.height, initialValues.width),
   };
 };
 
@@ -61,21 +57,24 @@ interface BaseFormProps {
 
 export const BaseForm: React.FC<BaseFormProps> = ({
   label,
-  initialValues = {},
+  initialValues,
   onSubmit,
   onDelete,
   onDuplicate,
   additionalFields,
 }) => {
+  const startingHeight =
+    initialValues?.height || generateDefaultValues(label).height;
+  const startingWidth =
+    initialValues?.width || generateDefaultValues(label).width;
+
   const [formData, setFormData] = useState<BaseFormData>({
     ...generateDefaultValues(label),
-    ...formatInitialValues(initialValues),
+    ...initialValues,
   });
 
-  const { height, width } = formData;
-
   const [dimensions, setDimensions] = useState<DimensionValues>(
-    formatInitialDimensions(height, width),
+    formatInitialDimensions(startingHeight, startingWidth),
   );
 
   const { name, x, y } = formData;
@@ -93,16 +92,13 @@ export const BaseForm: React.FC<BaseFormProps> = ({
     });
   };
 
-  const handleDimensionChange = useCallback((dimensions: DimensionValues) => {
-    setFormData(prev => ({ ...prev, ...dimensions }));
-  }, []);
+  const handleDimensionChange = (dimensions: DimensionValues) => {
+    setDimensions(dimensions);
+  };
 
-  const handleNameChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setFormData(prev => ({ ...prev, name: e.target.value }));
-    },
-    [],
-  );
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, name: e.target.value }));
+  };
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ p: 2 }}>
