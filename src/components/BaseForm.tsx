@@ -100,10 +100,33 @@ export const BaseForm: React.FC<BaseFormProps> = ({
     setFormData(prev => ({ ...prev, name: e.target.value }));
   };
 
+  // Determine if we are editing based on whether any initial values were provided
+  const isEditing = Object.keys(initialValues).length > 0;
+
+  // When parent updates initial height/width (e.g., furniture type change), sync into form
+  useEffect(() => {
+    if (
+      typeof initialValues.height === 'number' &&
+      typeof initialValues.width === 'number'
+    ) {
+      setFormData(prev => ({
+        ...prev,
+        height: initialValues.height as number,
+        width: initialValues.width as number,
+      }));
+      setDimensions(
+        formatInitialDimensions(
+          initialValues.height as number,
+          initialValues.width as number,
+        ),
+      );
+    }
+  }, [initialValues.height, initialValues.width]);
+
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ p: 2 }}>
       <Typography variant="h6" gutterBottom>
-        {initialValues ? 'Edit' : 'Add'} {label}
+        {isEditing ? 'Edit' : 'Add'} {label}
       </Typography>
 
       <CompactTextField
@@ -117,7 +140,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
 
       <DimensionSelector values={dimensions} onChange={handleDimensionChange} />
 
-      {initialValues && (
+      {isEditing && (
         <Typography
           variant="body2"
           color="text.secondary"
@@ -128,7 +151,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
 
       <ActionButtons
         onSubmit={() => {}}
-        submitText={initialValues ? 'Update' : 'Add'}
+        submitText={isEditing ? 'Update' : 'Add'}
         showSubmit={true}
         onDuplicate={onDuplicate}
         onDelete={onDelete}
