@@ -74,10 +74,7 @@ export function MainToolbar({
           onDelete={onDelete}
         />
         <Box sx={{ width: 16 }} />
-        <GridSettings
-          gridSize={gridSize}
-          onGridSizeChange={onGridSizeChange}
-        />
+        <GridSettings gridSize={gridSize} onGridSizeChange={onGridSizeChange} />
         <Box sx={{ width: 16 }} />
         <ColorSettings
           wallColor={wallColor}
@@ -90,8 +87,10 @@ export function MainToolbar({
         <Tooltip title="Undo (⌘Z)">
           <span>
             <IconButton
+              aria-label="Undo (⌘Z)"
               onClick={onUndo}
-              disabled={!canUndo}>
+              disabled={!canUndo}
+            >
               <UndoIcon />
             </IconButton>
           </span>
@@ -99,17 +98,16 @@ export function MainToolbar({
         <Tooltip title="Redo (⌘⇧Z)">
           <span>
             <IconButton
+              aria-label="Redo (⌘⇧Z)"
               onClick={onRedo}
-              disabled={!canRedo}>
+              disabled={!canRedo}
+            >
               <RedoIcon />
             </IconButton>
           </span>
         </Tooltip>
         <Box sx={{ flexGrow: 1 }} />
-        <ZoomControls
-          zoom={zoom}
-          onZoomChange={onZoomChange}
-        />
+        <ZoomControls zoom={zoom} onZoomChange={onZoomChange} />
         <Box sx={{ width: 16 }} />
         <ImageSettings
           onImageUpload={onImageUpload}
@@ -122,10 +120,7 @@ export function MainToolbar({
           onGridOpacityChange={onGridOpacityChange}
         />
         <Box sx={{ width: 16 }} />
-        <ThemeSwitcher
-          theme={theme}
-          onThemeChange={onThemeChange}
-        />
+        <ThemeSwitcher theme={theme} onThemeChange={onThemeChange} />
       </Toolbar>
     </AppBar>
   );

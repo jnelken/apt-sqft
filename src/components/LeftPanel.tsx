@@ -14,28 +14,32 @@ export function LeftPanel({ isOpen, onToggle, children }: LeftPanelProps) {
   return (
     <Box
       sx={{
-        width: isOpen ? 300 : 0,
+        width: isOpen ? 300 : 28,
         borderRight: 1,
         borderColor: 'divider',
         transition: 'width 0.2s',
         overflow: 'hidden',
         position: 'relative',
-      }}>
-      {children}
+        backgroundColor: 'background.paper',
+      }}
+    >
+      {/* Content area */}
+      <Box sx={{ height: '100%' }}>{children}</Box>
       <IconButton
         onClick={onToggle}
         sx={{
-          'position': 'absolute',
-          'right': -20,
-          'top': '50%',
-          'transform': 'translateY(-50%)',
-          'backgroundColor': 'background.paper',
-          'border': 1,
-          'borderColor': 'divider',
+          position: 'absolute',
+          right: -20,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          backgroundColor: 'background.paper',
+          border: 1,
+          borderColor: 'divider',
           '&:hover': {
             backgroundColor: 'action.hover',
           },
-        }}>
+        }}
+      >
         {isOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
       </IconButton>
     </Box>

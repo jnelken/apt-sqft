@@ -9,6 +9,9 @@ import { MainToolbar } from '@/components/MainToolbar';
 import { LeftPanel } from '@/components/LeftPanel';
 import { MainContent } from '@/components/MainContent';
 import { RightSidebar } from '@/components/RightSidebar';
+import { RoomList } from '@/components/RoomList';
+import { FurnitureList } from '@/components/FurnitureList';
+import Divider from '@mui/material/Divider';
 import { FurnitureInventory, FurnitureInstance, Furniture } from '@/lib/types';
 
 // Import custom hooks
@@ -30,7 +33,7 @@ const getFurnitureFromInstances = (
   inventory: FurnitureInventory,
 ): Furniture[] => {
   return instances
-    .map(instance => {
+    .map((instance) => {
       const furniture = inventory[instance.furnitureId];
       if (!furniture) return null;
       return {
@@ -155,7 +158,8 @@ function App() {
       <CssBaseline />
       <Box
         sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}
-        className={process.env.NODE_ENV === 'development' ? 'DEBUG_MODE' : ''}>
+        className={process.env.NODE_ENV === 'development' ? 'DEBUG_MODE' : ''}
+      >
         <FloorPlanTabs
           floorPlans={floorPlans}
           currentFloorPlanName={currentFloorPlanName}
@@ -191,7 +195,22 @@ function App() {
           <LeftPanel
             isOpen={isLeftPanelOpen}
             onToggle={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
-          />
+          >
+            <RoomList
+              rooms={appState.floorPlan.rooms}
+              selectedRoomId={appState.selectedRoomId}
+              onRoomSelect={handleRoomSelect}
+            />
+            <Divider />
+            <FurnitureList
+              furniture={getFurnitureFromInstances(
+                appState.floorPlan.furnitureInstances || [],
+                appState.furnitureInventory,
+              )}
+              selectedRoomId={appState.selectedRoomId}
+              onRoomSelect={handleRoomSelect}
+            />
+          </LeftPanel>
           <MainContent
             rooms={appState.floorPlan.rooms}
             furniture={getFurnitureFromInstances(
@@ -216,8 +235,8 @@ function App() {
             selectedRoom={selectedRoom}
             selectedFurniture={selectedFurniture}
             selectedTool={appState.selectedTool}
-            onToolChange={tool =>
-              setAppState(prev => ({ ...prev, selectedTool: tool }))
+            onToolChange={(tool) =>
+              setAppState((prev) => ({ ...prev, selectedTool: tool }))
             }
             rooms={appState.floorPlan.rooms}
             furniture={getFurnitureFromInstances(

@@ -5,19 +5,15 @@ import Tab from '@mui/material/Tab';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import Divider from '@mui/material/Divider';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import InfoIcon from '@mui/icons-material/Info';
-import ListIcon from '@mui/icons-material/List';
 import ChairIcon from '@mui/icons-material/Chair';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import { RoomForm } from './RoomForm';
+import { ItemForm } from './ItemForm';
 import { RoomDetails } from './RoomDetails';
-import { RoomList } from './RoomList';
 import { FloorPlanDetails } from './FloorPlanDetails';
-import { FurnitureForm } from './FurnitureForm';
-import { FurnitureList } from './FurnitureList';
+
 import { Room, Furniture, AppState } from '@/lib/types';
 import { useRoomManager } from '@/lib/hooks/useRoomManager';
 import { useFurnitureManager } from '@/lib/hooks/useFurnitureManager';
@@ -94,14 +90,15 @@ export function RightSidebar({
         borderColor: 'divider',
         display: 'flex',
         flexDirection: 'column',
-      }}>
+      }}
+    >
       <Tabs
         value={sidebarTab}
         onChange={onTabChange}
         variant="scrollable"
         scrollButtons="auto"
         sx={{
-          'minHeight': 48,
+          minHeight: 48,
           '& .MuiTabs-flexContainer': {
             justifyContent: 'space-around',
           },
@@ -109,7 +106,8 @@ export function RightSidebar({
             minWidth: 'auto',
             flex: 1,
           },
-        }}>
+        }}
+      >
         <Tooltip title="Add Room">
           <Tab icon={<AddIcon />} aria-label="Add Room" />
         </Tooltip>
@@ -119,15 +117,12 @@ export function RightSidebar({
         <Tooltip title="Floor Plan Details">
           <Tab icon={<InfoIcon />} aria-label="Floor Plan Details" />
         </Tooltip>
-        <Tooltip title="Room List">
-          <Tab icon={<ListIcon />} aria-label="Room List" />
-        </Tooltip>
         <Tooltip title="Add Furniture">
           <Tab icon={<ChairIcon />} aria-label="Add Furniture" />
         </Tooltip>
       </Tabs>
       <Box sx={{ flex: 1, overflow: 'auto' }}>
-        {sidebarTab === 0 && <RoomForm onSubmit={handleAddRoom} />}
+        {sidebarTab === 0 && <ItemForm label="Room" onSubmit={handleAddRoom} />}
         {sidebarTab === 1 && (
           <>
             {selectedRoom ? (
@@ -136,12 +131,14 @@ export function RightSidebar({
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <IconButton
                       onClick={() => onToolChange('select')}
-                      sx={{ mr: 1 }}>
+                      sx={{ mr: 1 }}
+                    >
                       <ChevronLeftIcon />
                     </IconButton>
                     <Typography variant="h6">Edit Room</Typography>
                   </Box>
-                  <RoomForm
+                  <ItemForm
+                    label="Room"
                     onSubmit={handleUpdateRoom}
                     initialValues={selectedRoom}
                     onDelete={handleDeleteRoom}
@@ -161,12 +158,14 @@ export function RightSidebar({
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <IconButton
                       onClick={() => onToolChange('select')}
-                      sx={{ mr: 1 }}>
+                      sx={{ mr: 1 }}
+                    >
                       <ChevronLeftIcon />
                     </IconButton>
                     <Typography variant="h6">Edit Furniture</Typography>
                   </Box>
-                  <FurnitureForm
+                  <ItemForm
+                    label="Furniture"
                     onSubmit={handleUpdateFurniture}
                     initialValues={selectedFurniture}
                     onDelete={handleDeleteFurniture}
@@ -188,33 +187,20 @@ export function RightSidebar({
         {sidebarTab === 2 && <FloorPlanDetails floorPlan={floorPlan} />}
         {sidebarTab === 3 && (
           <>
-            <RoomList
-              rooms={rooms}
-              selectedRoomId={selectedRoomId}
-              onRoomSelect={onRoomSelect}
-            />
-            <Divider />
-            <FurnitureList
-              furniture={furniture}
-              selectedRoomId={selectedRoomId}
-              onRoomSelect={onRoomSelect}
-            />
-          </>
-        )}
-        {sidebarTab === 4 && (
-          <>
             {selectedFurniture ? (
               selectedTool === 'edit' ? (
                 <Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <IconButton
                       onClick={() => onToolChange('select')}
-                      sx={{ mr: 1 }}>
+                      sx={{ mr: 1 }}
+                    >
                       <ChevronLeftIcon />
                     </IconButton>
                     <Typography variant="h6">Edit Furniture</Typography>
                   </Box>
-                  <FurnitureForm
+                  <ItemForm
+                    label="Furniture"
                     onSubmit={handleUpdateFurniture}
                     initialValues={selectedFurniture}
                     onDelete={handleDeleteFurniture}
@@ -225,7 +211,7 @@ export function RightSidebar({
                 <RoomDetails room={null} />
               )
             ) : (
-              <FurnitureForm onSubmit={handleAddFurniture} />
+              <ItemForm label="Furniture" onSubmit={handleAddFurniture} />
             )}
           </>
         )}
