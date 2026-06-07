@@ -23,12 +23,14 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
   onDuplicate,
 }) => {
   const [type, setType] = useState(initialValues?.type || 'Bed');
-  
+
   // Get template by type, not by ID
   const getTemplateByType = (furnitureType: string) => {
-    return FURNITURE_TEMPLATES.find(template => template.type === furnitureType);
+    return FURNITURE_TEMPLATES.find(
+      (template) => template.type === furnitureType,
+    );
   };
-  
+
   const [height, setHeight] = useState(
     initialValues?.height || getTemplateByType(type)?.defaultHeight || 80,
   );
@@ -51,7 +53,7 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
       type: type,
       x: data.x,
       y: data.y,
-      color: (initialValues as any)?.color || defaultColor,
+      color: initialValues?.color || defaultColor,
     };
 
     onSubmit(newFurnitureItem);
@@ -63,7 +65,7 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
       <Select
         value={type}
         label="Furniture Type"
-        onChange={e => {
+        onChange={(e) => {
           const newType = e.target.value;
           const template = getTemplateByType(newType);
           setType(newType);
@@ -71,8 +73,9 @@ export const FurnitureForm: React.FC<FurnitureFormProps> = ({
             setHeight(template.defaultHeight);
             setWidth(template.defaultWidth);
           }
-        }}>
-        {FURNITURE_TYPES.map(furnitureType => (
+        }}
+      >
+        {FURNITURE_TYPES.map((furnitureType) => (
           <MenuItem key={furnitureType} value={furnitureType}>
             {furnitureType}
           </MenuItem>

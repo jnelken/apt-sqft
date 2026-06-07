@@ -85,16 +85,16 @@ const RoomElement = styled('div')<{
     isFurniture,
     furnitureColor,
   }) => ({
-    'position': 'absolute',
-    'border': `2px solid ${wallColor}`,
-    'backgroundColor': isSelected
+    position: 'absolute',
+    border: `2px solid ${wallColor}`,
+    backgroundColor: isSelected
       ? highlightColor
       : isFurniture
-      ? furnitureColor || '#FFA500'
-      : isLivable
-      ? 'transparent'
-      : 'rgba(0, 0, 0, 0.5)',
-    'backgroundImage':
+        ? furnitureColor || '#FFA500'
+        : isLivable
+          ? 'transparent'
+          : 'rgba(0, 0, 0, 0.5)',
+    backgroundImage:
       !isLivable && !isSelected && !isFurniture
         ? `repeating-linear-gradient(
         45deg,
@@ -104,8 +104,8 @@ const RoomElement = styled('div')<{
         rgba(0, 0, 0, 0.3) 20px
       )`
         : 'none',
-    'cursor': 'move',
-    'opacity': isFurniture ? 1 : 0.5,
+    cursor: 'move',
+    opacity: isFurniture ? 1 : 0.5,
 
     '&:hover': {
       borderColor: wallColor,
@@ -245,16 +245,16 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       if (isPanning) {
         const dx = (e.clientX - dragStart.x) / zoom;
         const dy = (e.clientY - dragStart.y) / zoom;
-        setViewportOffset(prev => ({
+        setViewportOffset((prev) => ({
           x: prev.x + dx,
           y: prev.y + dy,
         }));
         setDragStart({ x: e.clientX, y: e.clientY });
       } else if (isDragging && selectedRoomId) {
         // Find the selected item in either rooms or furniture
-        const selectedRoom = rooms.find(room => room.id === selectedRoomId);
+        const selectedRoom = rooms.find((room) => room.id === selectedRoomId);
         const selectedFurniture = furniture.find(
-          item => item.id === selectedRoomId,
+          (item) => item.id === selectedRoomId,
         );
         const selectedItem = selectedRoom || selectedFurniture;
 
@@ -271,9 +271,9 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
         setDragStart({ x: e.clientX, y: e.clientY });
       } else if (isResizing && selectedRoomId && resizeWall) {
         // Find the selected item in either rooms or furniture
-        const selectedRoom = rooms.find(room => room.id === selectedRoomId);
+        const selectedRoom = rooms.find((room) => room.id === selectedRoomId);
         const selectedFurniture = furniture.find(
-          item => item.id === selectedRoomId,
+          (item) => item.id === selectedRoomId,
         );
         const selectedItem = selectedRoom || selectedFurniture;
 
@@ -332,9 +332,9 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
     if (selectedRoomId) {
       if (isDragging) {
         // Find the selected item in either rooms or furniture
-        const selectedRoom = rooms.find(room => room.id === selectedRoomId);
+        const selectedRoom = rooms.find((room) => room.id === selectedRoomId);
         const selectedFurniture = furniture.find(
-          item => item.id === selectedRoomId,
+          (item) => item.id === selectedRoomId,
         );
         const selectedItem = selectedRoom || selectedFurniture;
 
@@ -345,9 +345,9 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
         }
       } else if (isResizing) {
         // Find the selected item in either rooms or furniture
-        const selectedRoom = rooms.find(room => room.id === selectedRoomId);
+        const selectedRoom = rooms.find((room) => room.id === selectedRoomId);
         const selectedFurniture = furniture.find(
-          item => item.id === selectedRoomId,
+          (item) => item.id === selectedRoomId,
         );
         const selectedItem = selectedRoom || selectedFurniture;
 
@@ -400,16 +400,32 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
     e.preventDefault();
   }, []);
 
+  // Bridge native events to React handler without using `any`
+  const handleWindowMouseMove = useCallback(
+    (e: MouseEvent) => {
+      // Minimal shim object for the fields we read in handleMouseMove
+      const synthetic = {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        // No-op to satisfy potential event usage
+        stopPropagation: () => {},
+        preventDefault: () => {},
+      } as unknown as React.MouseEvent;
+      handleMouseMove(synthetic);
+    },
+    [handleMouseMove],
+  );
+
   useEffect(() => {
     if (isDragging || isPanning) {
-      window.addEventListener('mousemove', handleMouseMove as any);
+      window.addEventListener('mousemove', handleWindowMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     }
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove as any);
+      window.removeEventListener('mousemove', handleWindowMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, isPanning, handleMouseMove, handleMouseUp]);
+  }, [isDragging, isPanning, handleWindowMouseMove, handleMouseUp]);
 
   return (
     <EditorContainer
@@ -418,17 +434,19 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       onMouseDown={handleContainerMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
-      onContextMenu={handleContextMenu}>
+      onContextMenu={handleContextMenu}
+    >
       <EditorContent
         zoom={zoom}
         style={{
           transform: `translate(calc(-50% + ${viewportOffset.x}px), calc(-50% + ${viewportOffset.y}px)) scale(${zoom})`,
-        }}>
+        }}
+      >
         {backgroundImage && (
           <BackgroundImage scale={imageScale} imageUrl={backgroundImage} />
         )}
         <Grid gridSize={gridSize} opacity={gridOpacity} />
-        {rooms.map(room => (
+        {rooms.map((room) => (
           <RoomElement
             key={room.id}
             isLivable={room.livability === 'livable'}
@@ -442,30 +460,31 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
               height: `${room.height}em`,
               borderColor: selectedRoomId === room.id ? '#2196f3' : wallColor,
             }}
-            onMouseDown={e => handleMouseDown(e, room.id)}>
+            onMouseDown={(e) => handleMouseDown(e, room.id)}
+          >
             {selectedRoomId === room.id && (
               <>
                 <ResizeHandle
                   position="e"
-                  onMouseDown={e => handleResizeStart(e, room.id, 'e')}
+                  onMouseDown={(e) => handleResizeStart(e, room.id, 'e')}
                 />
                 <ResizeHandle
                   position="w"
-                  onMouseDown={e => handleResizeStart(e, room.id, 'w')}
+                  onMouseDown={(e) => handleResizeStart(e, room.id, 'w')}
                 />
                 <ResizeHandle
                   position="n"
-                  onMouseDown={e => handleResizeStart(e, room.id, 'n')}
+                  onMouseDown={(e) => handleResizeStart(e, room.id, 'n')}
                 />
                 <ResizeHandle
                   position="s"
-                  onMouseDown={e => handleResizeStart(e, room.id, 's')}
+                  onMouseDown={(e) => handleResizeStart(e, room.id, 's')}
                 />
               </>
             )}
           </RoomElement>
         ))}
-        {furniture.map(item => (
+        {furniture.map((item) => (
           <RoomElement
             key={item.id}
             isLivable={false}
@@ -481,24 +500,25 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
               height: `${item.height}em`,
               borderColor: selectedRoomId === item.id ? '#2196f3' : wallColor,
             }}
-            onMouseDown={e => handleMouseDown(e, item.id)}>
+            onMouseDown={(e) => handleMouseDown(e, item.id)}
+          >
             {selectedRoomId === item.id && (
               <>
                 <ResizeHandle
                   position="e"
-                  onMouseDown={e => handleResizeStart(e, item.id, 'e')}
+                  onMouseDown={(e) => handleResizeStart(e, item.id, 'e')}
                 />
                 <ResizeHandle
                   position="w"
-                  onMouseDown={e => handleResizeStart(e, item.id, 'w')}
+                  onMouseDown={(e) => handleResizeStart(e, item.id, 'w')}
                 />
                 <ResizeHandle
                   position="n"
-                  onMouseDown={e => handleResizeStart(e, item.id, 'n')}
+                  onMouseDown={(e) => handleResizeStart(e, item.id, 'n')}
                 />
                 <ResizeHandle
                   position="s"
-                  onMouseDown={e => handleResizeStart(e, item.id, 's')}
+                  onMouseDown={(e) => handleResizeStart(e, item.id, 's')}
                 />
               </>
             )}

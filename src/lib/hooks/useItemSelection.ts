@@ -1,11 +1,18 @@
 import { useCallback, useMemo } from 'react';
-import { AppState, Room, Furniture, FurnitureInventory, FurnitureInstance } from '@/lib/types';
+import {
+  AppState,
+  Room,
+  Furniture,
+  FurnitureInventory,
+  FurnitureInstance,
+  FloorPlan,
+} from '@/lib/types';
 
 interface UseItemSelectionProps {
   appState: AppState;
   setAppState: React.Dispatch<React.SetStateAction<AppState>>;
   setSidebarTab: React.Dispatch<React.SetStateAction<number>>;
-  pushToHistory: (newFloorPlan: any) => void;
+  pushToHistory: (newFloorPlan: FloorPlan) => void;
   handleDeleteRoom: () => void;
   handleDeleteFurniture: () => void;
 }
@@ -16,7 +23,7 @@ const getFurnitureFromInstances = (
   inventory: FurnitureInventory,
 ): Furniture[] => {
   return instances
-    .map(instance => {
+    .map((instance) => {
       const furniture = inventory[instance.furnitureId];
       if (!furniture) return null;
       return {
@@ -32,8 +39,18 @@ interface UseItemSelectionReturn {
   selectedRoom: Room | undefined;
   selectedFurniture: Furniture | undefined;
   handleRoomSelect: (roomId: string | null) => void;
-  handleRoomMove: (roomId: string, x: number, y: number, isDragging?: boolean) => void;
-  handleRoomResize: (roomId: string, width: number, height: number, isResizing?: boolean) => void;
+  handleRoomMove: (
+    roomId: string,
+    x: number,
+    y: number,
+    isDragging?: boolean,
+  ) => void;
+  handleRoomResize: (
+    roomId: string,
+    width: number,
+    height: number,
+    isResizing?: boolean,
+  ) => void;
   handleSwapDimensions: () => void;
   handleDeleteSelected: () => void;
   handleTabChange: (event: React.SyntheticEvent, newValue: number) => void;
@@ -48,15 +65,18 @@ export const useItemSelection = ({
   handleDeleteFurniture,
 }: UseItemSelectionProps): UseItemSelectionReturn => {
   // Computed values for selected items
-  const selectedRoom = useMemo(() => 
-    appState.floorPlan.rooms.find(room => room.id === appState.selectedRoomId),
-    [appState.floorPlan.rooms, appState.selectedRoomId]
+  const selectedRoom = useMemo(
+    () =>
+      appState.floorPlan.rooms.find(
+        (room) => room.id === appState.selectedRoomId,
+      ),
+    [appState.floorPlan.rooms, appState.selectedRoomId],
   );
 
   const selectedFurniture = useMemo(() => {
     if (!appState.selectedRoomId) return undefined;
     const instance = appState.floorPlan.furnitureInstances.find(
-      inst => inst.furnitureId === appState.selectedRoomId,
+      (inst) => inst.furnitureId === appState.selectedRoomId,
     );
     const furniture = appState.furnitureInventory[appState.selectedRoomId];
     if (!instance || !furniture) return undefined;
@@ -65,124 +85,139 @@ export const useItemSelection = ({
       x: instance.x,
       y: instance.y,
     };
-  }, [appState.selectedRoomId, appState.floorPlan.furnitureInstances, appState.furnitureInventory]);
+  }, [
+    appState.selectedRoomId,
+    appState.floorPlan.furnitureInstances,
+    appState.furnitureInventory,
+  ]);
 
-  const handleRoomSelect = useCallback((roomId: string | null) => {
-    setAppState(prev => ({ ...prev, selectedRoomId: roomId }));
-    if (roomId) {
-      setSidebarTab(1); // Switch to Room Details tab when a room is selected
-    }
-  }, [setAppState, setSidebarTab]);
+  const handleRoomSelect = useCallback(
+    (roomId: string | null) => {
+      setAppState((prev) => ({ ...prev, selectedRoomId: roomId }));
+      if (roomId) {
+        setSidebarTab(1); // Switch to Room Details tab when a room is selected
+      }
+    },
+    [setAppState, setSidebarTab],
+  );
 
-  const handleRoomMove = useCallback((
-    roomId: string,
-    x: number,
-    y: number,
-    isDragging: boolean = false,
-  ) => {
-    // Check if the item is a room or furniture
-    const isRoom = appState.floorPlan.rooms.some(room => room.id === roomId);
-    const isFurniture = appState.floorPlan.furnitureInstances.some(
-      instance => instance.furnitureId === roomId,
-    );
-
-    const newFloorPlan = { ...appState.floorPlan };
-
-    if (isRoom) {
-      newFloorPlan.rooms = newFloorPlan.rooms.map(room =>
-        room.id === roomId
-          ? {
-              ...room,
-              x,
-              y,
-            }
-          : room,
+  const handleRoomMove = useCallback(
+    (roomId: string, x: number, y: number, isDragging: boolean = false) => {
+      // Check if the item is a room or furniture
+      const isRoom = appState.floorPlan.rooms.some(
+        (room) => room.id === roomId,
       );
-    } else if (isFurniture) {
-      newFloorPlan.furnitureInstances = newFloorPlan.furnitureInstances.map(
-        instance =>
-          instance.furnitureId === roomId
+      const isFurniture = appState.floorPlan.furnitureInstances.some(
+        (instance) => instance.furnitureId === roomId,
+      );
+
+      const newFloorPlan = { ...appState.floorPlan };
+
+      if (isRoom) {
+        newFloorPlan.rooms = newFloorPlan.rooms.map((room) =>
+          room.id === roomId
             ? {
-                ...instance,
+                ...room,
                 x,
                 y,
               }
-            : instance,
+            : room,
+        );
+      } else if (isFurniture) {
+        newFloorPlan.furnitureInstances = newFloorPlan.furnitureInstances.map(
+          (instance) =>
+            instance.furnitureId === roomId
+              ? {
+                  ...instance,
+                  x,
+                  y,
+                }
+              : instance,
+        );
+      }
+
+      // Only push to history if we're not dragging (i.e., this is the final position)
+      if (!isDragging) {
+        pushToHistory(newFloorPlan);
+      } else {
+        // Just update the current state without adding to history
+        setAppState((prev) => ({
+          ...prev,
+          floorPlan: newFloorPlan,
+        }));
+      }
+    },
+    [appState.floorPlan, pushToHistory, setAppState],
+  );
+
+  const handleRoomResize = useCallback(
+    (
+      roomId: string,
+      width: number,
+      height: number,
+      isResizing: boolean = false,
+    ) => {
+      const newFloorPlan = { ...appState.floorPlan };
+      const isRoom = newFloorPlan.rooms.some((room) => room.id === roomId);
+      const isFurniture = newFloorPlan.furnitureInstances.some(
+        (instance) => instance.furnitureId === roomId,
       );
-    }
 
-    // Only push to history if we're not dragging (i.e., this is the final position)
-    if (!isDragging) {
-      pushToHistory(newFloorPlan);
-    } else {
-      // Just update the current state without adding to history
-      setAppState(prev => ({
-        ...prev,
-        floorPlan: newFloorPlan,
-      }));
-    }
-  }, [appState.floorPlan, pushToHistory, setAppState]);
+      if (isRoom) {
+        newFloorPlan.rooms = newFloorPlan.rooms.map((room) =>
+          room.id === roomId
+            ? {
+                ...room,
+                width,
+                height,
+              }
+            : room,
+        );
+      } else if (isFurniture) {
+        // Update furniture in inventory
+        const updatedInventory = {
+          ...appState.furnitureInventory,
+          [roomId]: {
+            ...appState.furnitureInventory[roomId],
+            width,
+            height,
+          },
+        };
 
-  const handleRoomResize = useCallback((
-    roomId: string,
-    width: number,
-    height: number,
-    isResizing: boolean = false,
-  ) => {
-    const newFloorPlan = { ...appState.floorPlan };
-    const isRoom = newFloorPlan.rooms.some(room => room.id === roomId);
-    const isFurniture = newFloorPlan.furnitureInstances.some(
-      instance => instance.furnitureId === roomId,
-    );
+        setAppState((prev) => ({
+          ...prev,
+          furnitureInventory: updatedInventory,
+        }));
+      }
 
-    if (isRoom) {
-      newFloorPlan.rooms = newFloorPlan.rooms.map(room =>
-        room.id === roomId
-          ? {
-              ...room,
-              width,
-              height,
-            }
-          : room,
-      );
-    } else if (isFurniture) {
-      // Update furniture in inventory
-      const updatedInventory = {
-        ...appState.furnitureInventory,
-        [roomId]: {
-          ...appState.furnitureInventory[roomId],
-          width,
-          height,
-        },
-      };
-
-      setAppState(prev => ({
-        ...prev,
-        furnitureInventory: updatedInventory,
-      }));
-    }
-
-    // Only push to history if we're not resizing (i.e., this is the final size)
-    if (!isResizing) {
-      pushToHistory(newFloorPlan);
-    } else {
-      // Just update the current state without adding to history
-      setAppState(prev => ({
-        ...prev,
-        floorPlan: newFloorPlan,
-      }));
-    }
-  }, [appState.floorPlan, appState.furnitureInventory, setAppState, pushToHistory]);
+      // Only push to history if we're not resizing (i.e., this is the final size)
+      if (!isResizing) {
+        pushToHistory(newFloorPlan);
+      } else {
+        // Just update the current state without adding to history
+        setAppState((prev) => ({
+          ...prev,
+          floorPlan: newFloorPlan,
+        }));
+      }
+    },
+    [
+      appState.floorPlan,
+      appState.furnitureInventory,
+      setAppState,
+      pushToHistory,
+    ],
+  );
 
   const handleSwapDimensions = useCallback(() => {
     if (appState.selectedRoomId) {
       const selectedRoom = appState.floorPlan.rooms.find(
-        room => room.id === appState.selectedRoomId,
+        (room) => room.id === appState.selectedRoomId,
       );
       const selectedFurniture = (() => {
         if (!appState.selectedRoomId) return undefined;
         const instance = appState.floorPlan.furnitureInstances.find(
-          inst => inst.furnitureId === appState.selectedRoomId,
+          (inst) => inst.furnitureId === appState.selectedRoomId,
         );
         const furniture = appState.furnitureInventory[appState.selectedRoomId];
         if (!instance || !furniture) return undefined;
@@ -202,7 +237,7 @@ export const useItemSelection = ({
         };
         const newFloorPlan = {
           ...appState.floorPlan,
-          rooms: appState.floorPlan.rooms.map(room =>
+          rooms: appState.floorPlan.rooms.map((room) =>
             room.id === appState.selectedRoomId ? newRoom : room,
           ),
         };
@@ -218,7 +253,7 @@ export const useItemSelection = ({
           },
         };
 
-        setAppState(prev => ({
+        setAppState((prev) => ({
           ...prev,
           furnitureInventory: updatedInventory,
         }));
@@ -234,7 +269,7 @@ export const useItemSelection = ({
 
     // Check if the selected item is a room
     const isRoom = appState.floorPlan.rooms.some(
-      room => room.id === appState.selectedRoomId,
+      (room) => room.id === appState.selectedRoomId,
     );
 
     if (isRoom) {
@@ -243,15 +278,23 @@ export const useItemSelection = ({
       // It must be furniture
       handleDeleteFurniture();
     }
-  }, [appState.selectedRoomId, appState.floorPlan.rooms, handleDeleteRoom, handleDeleteFurniture]);
+  }, [
+    appState.selectedRoomId,
+    appState.floorPlan.rooms,
+    handleDeleteRoom,
+    handleDeleteFurniture,
+  ]);
 
-  const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
-    setSidebarTab(newValue);
-    // Clear room selection when switching to Add Room tab
-    if (newValue === 0) {
-      setAppState(prev => ({ ...prev, selectedRoomId: null }));
-    }
-  }, [setSidebarTab, setAppState]);
+  const handleTabChange = useCallback(
+    (event: React.SyntheticEvent, newValue: number) => {
+      setSidebarTab(newValue);
+      // Clear room selection when switching to Add Room tab
+      if (newValue === 0) {
+        setAppState((prev) => ({ ...prev, selectedRoomId: null }));
+      }
+    },
+    [setSidebarTab, setAppState],
+  );
 
   return {
     selectedRoom,

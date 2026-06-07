@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
-import { Room, AppState } from '@/lib/types';
+import { Room, AppState, FloorPlan } from '@/lib/types';
 
 interface UseRoomManagerProps {
   appState: AppState;
   setAppState: React.Dispatch<React.SetStateAction<AppState>>;
-  pushToHistory: (newFloorPlan: any) => void;
+  pushToHistory: (newFloorPlan: FloorPlan) => void;
   setSidebarTab: React.Dispatch<React.SetStateAction<number>>;
 }
 
@@ -47,7 +47,7 @@ export const useRoomManager = ({
         sqFootage: roundSquareFootage(roomData.width, roomData.height),
       };
 
-      setAppState(prev => ({
+      setAppState((prev) => ({
         ...prev,
         floorPlan: {
           ...prev.floorPlan,
@@ -62,11 +62,11 @@ export const useRoomManager = ({
     (roomData: Omit<Room, 'id' | 'points'>) => {
       if (!appState.selectedRoomId) return;
 
-      setAppState(prev => ({
+      setAppState((prev) => ({
         ...prev,
         floorPlan: {
           ...prev.floorPlan,
-          rooms: prev.floorPlan.rooms.map(room =>
+          rooms: prev.floorPlan.rooms.map((room) =>
             room.id === appState.selectedRoomId
               ? {
                   ...room,
@@ -94,12 +94,12 @@ export const useRoomManager = ({
     const newFloorPlan = {
       ...appState.floorPlan,
       rooms: appState.floorPlan.rooms.filter(
-        room => room.id !== appState.selectedRoomId,
+        (room) => room.id !== appState.selectedRoomId,
       ),
     };
 
     pushToHistory(newFloorPlan);
-    setAppState(prev => ({ ...prev, selectedRoomId: null }));
+    setAppState((prev) => ({ ...prev, selectedRoomId: null }));
     setSidebarTab(0); // Switch to Add Room tab after deletion
   }, [
     appState.selectedRoomId,
@@ -112,7 +112,7 @@ export const useRoomManager = ({
   const handleDuplicateRoom = useCallback(() => {
     if (!appState.selectedRoomId) return;
     const roomToClone = appState.floorPlan.rooms.find(
-      room => room.id === appState.selectedRoomId,
+      (room) => room.id === appState.selectedRoomId,
     );
     if (!roomToClone) return;
 
@@ -125,7 +125,7 @@ export const useRoomManager = ({
       points: [],
     };
 
-    setAppState(prev => ({
+    setAppState((prev) => ({
       ...prev,
       floorPlan: {
         ...prev.floorPlan,

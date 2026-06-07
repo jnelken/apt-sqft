@@ -103,7 +103,7 @@ export const ItemForm: React.FC<ItemFormProps> = (props) => {
         type,
         x: data.x,
         y: data.y,
-        color: (furnitureInitialValues as any)?.color || defaultColor,
+        color: furnitureInitialValues?.color || defaultColor,
       };
       (props as FurnitureItemFormProps).onSubmit(furniture);
     }

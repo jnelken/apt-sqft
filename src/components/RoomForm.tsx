@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Typography, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { Room } from '@/lib/types';
-import { BaseForm } from './BaseForm';
-import { BaseFormData } from './BaseForm';
+import { BaseForm, BaseFormData } from './BaseForm';
 
 interface RoomFormProps {
   onSubmit: (room: Omit<Room, 'id' | 'points'>) => void;
-  initialValues?: Partial<BaseFormData & { livability?: 'livable' | 'non-livable' | 'outdoor' }>;
+  initialValues?: Partial<
+    BaseFormData & { livability?: 'livable' | 'non-livable' | 'outdoor' }
+  >;
   onDelete?: () => void;
   onDuplicate?: () => void;
 }
@@ -17,8 +18,11 @@ export const RoomForm: React.FC<RoomFormProps> = ({
   onDelete,
   onDuplicate,
 }) => {
-  const [livability, setLivability] = useState<'livable' | 'non-livable' | 'outdoor'>(
-    (initialValues?.livability as 'livable' | 'non-livable' | 'outdoor') || 'livable'
+  const [livability, setLivability] = useState<
+    'livable' | 'non-livable' | 'outdoor'
+  >(
+    (initialValues?.livability as 'livable' | 'non-livable' | 'outdoor') ||
+      'livable',
   );
   const handleSubmit = (data: any) => {
     onSubmit({
@@ -42,7 +46,8 @@ export const RoomForm: React.FC<RoomFormProps> = ({
         exclusive
         onChange={(_, newValue) => newValue && setLivability(newValue)}
         fullWidth
-        sx={{ mb: 2 }}>
+        sx={{ mb: 2 }}
+      >
         <ToggleButton value="livable">Livable</ToggleButton>
         <ToggleButton value="non-livable">Non-Livable</ToggleButton>
         <ToggleButton value="outdoor">Outdoor</ToggleButton>

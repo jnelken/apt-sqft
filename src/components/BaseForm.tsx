@@ -97,7 +97,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, name: e.target.value }));
+    setFormData((prev) => ({ ...prev, name: e.target.value }));
   };
 
   return (
@@ -121,7 +121,8 @@ export const BaseForm: React.FC<BaseFormProps> = ({
         <Typography
           variant="body2"
           color="text.secondary"
-          sx={{ mt: 1, mb: 2 }}>
+          sx={{ mt: 1, mb: 2 }}
+        >
           Position: ({initialValues.x}, {initialValues.y})
         </Typography>
       )}

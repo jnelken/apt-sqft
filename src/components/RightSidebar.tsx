@@ -13,8 +13,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import { ItemForm } from './ItemForm';
 import { RoomDetails } from './RoomDetails';
 import { FloorPlanDetails } from './FloorPlanDetails';
-
-import { Room, Furniture, AppState } from '@/lib/types';
+import { Room, Furniture, AppState, FloorPlan } from '@/lib/types';
 import { useRoomManager } from '@/lib/hooks/useRoomManager';
 import { useFurnitureManager } from '@/lib/hooks/useFurnitureManager';
 import { useHistoryManager } from '@/lib/hooks/useHistoryManager';
@@ -33,7 +32,7 @@ interface RightSidebarProps {
   selectedRoomId: string | null;
   onRoomSelect: (roomId: string | null) => void;
   onSwapDimensions: () => void;
-  floorPlan: any; // TODO: Add proper type
+  floorPlan: FloorPlan;
   appState: AppState;
   setAppState: React.Dispatch<React.SetStateAction<AppState>>;
   setSidebarTab: React.Dispatch<React.SetStateAction<number>>;
