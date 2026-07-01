@@ -1,85 +1,82 @@
 # Project Specification
 
-## Architecture Overview
+A client-side floor plan editor. Users enter room dimensions and furniture, and the app renders a draggable, grid-snapped 2D top-down layout used to approximate apartment listings and reason about price-per-square-foot. All data lives in the browser — there is no backend.
 
-This is a React-based floor plan editor application built with TypeScript and Material-UI. The app follows a component-based architecture with centralized state management and local persistence.
+> The authoritative product/design intent lives in `.cursor/rules/project-instructions.mdc` (relative-vs-absolute rooms, grid snapping, the "em = 1 inch" convention, drag/point rules). This file describes the technical architecture as built. Where they overlap, the cursor rules govern design behavior and the code governs current data shapes.
 
 ## Technology Stack
 
-### Core Technologies
-
-- **React 19**: Latest React with concurrent features
-- **TypeScript 4.9**: Static typing and enhanced developer experience
-- **Material-UI v7**: Component library and theming system
-- **Emotion**: CSS-in-JS styling (MUI dependency)
-
-### Key Dependencies
-
-- `react-colorful`: Color picker component
-- `@mui/icons-material`: Material Design icons
-- `@testing-library/*`: Testing utilities
-- `web-vitals`: Performance monitoring
-
-### Development Tools
-
-- **Create React App**: Build tooling and development server
-- **ESLint**: Code linting with React-specific rules
-- **Jest**: Testing framework
-- **TypeScript**: Type checking and compilation
+- **Next.js 15** (App Router) — see "Application shell" below
+- **React 19**
+- **TypeScript 5.9** (strict mode)
+- **Material-UI v7** + **Emotion** (CSS-in-JS)
+- `react-colorful` — color picker
+- **Jest** + **React Testing Library** (jsdom) — testing
+- **ESLint** (`next/core-web-vitals`) + **Prettier**
 
 ## Project Structure
 
 ```
+app/                     # Next.js App Router entry (shell only)
+  layout.tsx             # Root layout + metadata
+  page.tsx               # dynamic()-imports src/App.tsx with ssr: false
 src/
-├── components/           # Reusable UI components
-│   ├── ui/               # Basic UI components (closed folder)
-│   ├── ColorSettings.tsx
-│   ├── FloorPlanDetails.tsx
-│   ├── FloorPlanName.tsx
-│   ├── FloorPlanTabs.tsx
-│   ├── FurnitureForm.tsx
-│   ├── FurnitureList.tsx
-│   ├── GridSettings.tsx
-│   ├── ImageSettings.tsx
-│   ├── LayoutEditor.tsx  # Main canvas component
-│   ├── RoomDetails.tsx
-│   ├── RoomForm.tsx
-│   ├── RoomList.tsx
-│   ├── ThemeSwitcher.tsx
-│   └── ZoomControls.tsx
-├── types/
-│   └── index.ts         # TypeScript type definitions
-├── App.tsx              # Main application component
-├── index.tsx            # Application entry point
-└── index.css            # Global styles
+  App.tsx                # True application root: top-level state + hook composition
+  components/            # UI components (PascalCase)
+    ui/                  # Shared atoms (ActionButtons, CompactTextField, DimensionSelector)
+    LayoutEditor.tsx     # The 2D canvas
+    BaseForm.tsx, ItemForm.tsx, RoomForm.tsx, FurnitureForm.tsx, ...
+  lib/
+    hooks/               # One manager hook per behavior slice (see State Management)
+    types/index.ts       # Shared TypeScript interfaces
+    utils/               # Pure helpers (e.g. formatInitialDimensions.ts)
+    constants/           # e.g. furniture.constants.ts
+  index.tsx, reportWebVitals.ts   # Legacy CRA scaffolding — NOT used by Next.js
 ```
+
+Path alias: `@/*` → `src/*`.
+
+## Application Shell
+
+The entire app is a **client-only SPA mounted inside Next.js**. `app/page.tsx` is the only real page; it `dynamic()`-imports `src/App.tsx` with `ssr: false`. Consequences:
+
+- No server-side rendering, no API routes, no server data fetching.
+- `src/App.tsx` is the true app root — treat it as such.
+- `src/index.tsx` / `reportWebVitals.ts` are leftover Create React App files and are not part of the Next.js entry path.
 
 ## State Management
 
-### Centralized State
+`src/App.tsx` owns the top-level `useState` (`floorPlans`, `currentFloorPlanName`, `appState`) and composes manager hooks from `src/lib/hooks/`. Each hook encapsulates one slice of behavior:
 
-The application uses React's `useState` for state management with the following key state objects:
+- **`useLocalStoragePersistence`** — load/save the whole app blob; `initializeStateFromStorage()` seeds initial state
+- **`useHistoryManager`** — undo/redo, stored in sessionStorage
+- **`useFloorPlanManager`** / **`useRoomManager`** / **`useFurnitureManager`** — CRUD on each entity
+- **`useItemSelection`** — current selection
+- **`useKeyboardShortcuts`** — hotkeys
+- **`useAppSettings`** — theme, grid, colors
 
-- **`appState`**: Main application state including current floor plan, UI state, and settings
-- **`floorPlans`**: Collection of all floor plans (persisted to localStorage)
-- **`currentFloorPlanName`**: Active floor plan identifier
+When adding editor behavior, extend or add a hook rather than growing `App.tsx`.
 
-### Data Persistence
+### Persistence
 
-- **localStorage**: Floor plans and app settings
-- **sessionStorage**: Undo/redo history (session-specific)
-
-### History Management
-
-- Implements undo/redo functionality with keyboard shortcuts
-- History is stored in sessionStorage to prevent memory issues
-- Actions that modify floor plans push new states to history
+- **localStorage** — floor plans and app settings, saved as a single JSON blob. A download/upload flow lets users export/import that blob.
+- **sessionStorage** — undo/redo history (kept out of localStorage to avoid bloat).
 
 ## Core Data Models
 
-### Room Interface
+Defined in `src/lib/types/index.ts`.
 
 ```typescript
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface Wall {
+  start: Point;
+  end: Point;
+}
+
 interface Room {
   id: string;
   name: string;
@@ -90,197 +87,82 @@ interface Room {
   points: Point[];
   x: number;
   y: number;
-  isRelative: boolean;
-  relativeTo?: string;
-  relativeRatio?: number;
 }
-```
 
-### Furniture Interface
-
-```typescript
 interface Furniture extends Room {
   type: string;
+  color?: string; // hex
 }
-```
 
-### FloorPlan Interface
-
-```typescript
 interface FloorPlan {
   name: string;
   rooms: Room[];
-  furniture: Furniture[];
+  furnitureInstances: FurnitureInstance[];
   backgroundImage: string | null;
   imageScale: number;
 }
 ```
 
-## Development Best Practices
+### Furniture: inventory + instances
 
-### Component Guidelines
+Furniture uses an **inventory/instances split** rather than storing full furniture objects on the floor plan:
 
-1. **Functional Components**: Use function components with hooks
-2. **TypeScript**: All components must be typed with proper interfaces
-3. **Props Interface**: Define explicit interfaces for component props
-4. **Event Handlers**: Use descriptive handler names (e.g., `handleRoomMove`)
-5. **Material-UI**: Leverage MUI components and theming system
+```typescript
+interface FurnitureInventory {
+  [furnitureId: string]: Furniture;
+}
 
-### Code Organization
+interface FurnitureInstance {
+  furnitureId: string; // reference into the inventory
+  x: number;
+  y: number;
+  rotation?: number;
+}
+```
 
-1. **Single Responsibility**: Each component should have one clear purpose
-2. **Composition**: Prefer composition over inheritance
-3. **Custom Hooks**: Extract reusable logic into custom hooks when appropriate
-4. **Type Safety**: Avoid `any` types, use proper TypeScript interfaces
+`App.tsx` joins each `FurnitureInstance` against `FurnitureInventory` to produce concrete `Furniture[]` for rendering. `FurnitureTemplate` (in the same file) defines catalog defaults (size, color, category) used when creating new inventory entries.
 
-### State Updates
+### Geometry rules
 
-1. **Immutability**: Always create new objects/arrays for state updates
-2. **History Management**: Use `pushToHistory()` for actions that should be undoable
-3. **Optimistic Updates**: Update UI immediately, handle persistence separately
-4. **Batch Updates**: Group related state changes when possible
+- A room/furniture is a **set of points**; walls are derived by a shortest-path rule, not stored explicitly. (Every point connects to two walls; every wall to two points.)
+- The unit convention is **1rem/1em ≈ 1 inch**, which makes relative room sizing and furniture scaling straightforward in CSS.
+- Points snap to the grid only when edited — changing the grid size does not move existing points.
+- `height`/`width` seed the initial sqFootage and first 4 points only. See the cursor rules for the full absolute/relative-room and drag/short-wall behavior.
 
-### Performance Considerations
+## Build & Development
 
-1. **React.memo**: Memoize expensive components
-2. **useCallback**: Memoize event handlers passed to child components
-3. **useMemo**: Memoize expensive calculations
-4. **Lazy Loading**: Consider code splitting for large components
+```bash
+npm run dev          # Next.js dev server (http://localhost:3000)
+npm run build        # Production build (also a full typecheck)
+npm start            # Serve the production build
+npm run typecheck    # tsc --noEmit
+npm run lint         # ESLint
+npm test             # Jest + RTL
+npm test -- --coverage   # Coverage (thresholds in jest.config.js)
+```
 
-## Adding New Features
+Git hooks (`.githooks/`): pre-commit runs lint-staged + lint + typecheck; pre-push runs the full test suite.
 
-### Adding a New Component
+## Conventions
 
-1. Create component file in `src/components/`
-2. Define TypeScript interfaces for props
-3. Use Material-UI components and theming
-4. Export component from the file
-5. Import and use in parent components
-
-### Adding New Room/Furniture Properties
-
-1. Update interfaces in `src/types/index.ts`
-2. Update form components (`RoomForm.tsx`, `FurnitureForm.tsx`)
-3. Update display components (`RoomDetails.tsx`, `RoomList.tsx`)
-4. Handle new properties in state management functions
-
-### Adding New Tools/Modes
-
-1. Update `selectedTool` type in `AppState` interface
-2. Add tool UI to appropriate sidebar tab
-3. Implement tool logic in `LayoutEditor.tsx`
-4. Add keyboard shortcuts if applicable
-
-### Adding New Settings
-
-1. Add property to `AppState` interface
-2. Create settings component in `src/components/`
-3. Add to toolbar or settings panel
-4. Implement persistence logic
+- TypeScript strict mode; prefer named exports; 2-space indentation.
+- Components: PascalCase. Hooks: `useXxx`. Constants: UPPER_SNAKE_CASE under `src/lib/constants/`.
+- `react-hooks/exhaustive-deps` is enforced as an error.
+- Tests colocated as `*.test.ts(x)`; favor behavior-focused tests.
+- Follow the React/TypeScript guidelines in the parent `../CLAUDE.md` (shared base components, centralized defaults, controlled inputs over HTML form state).
 
 ## Testing Strategy
 
-### Unit Tests
+- **Unit** — pure utilities and individual hooks/components in isolation.
+- **Integration** — state flows and user workflows (add room, move furniture, undo/redo).
+- Tools: Jest (jsdom), React Testing Library, `@testing-library/user-event`.
 
-- Test individual components in isolation
-- Mock external dependencies
-- Focus on component behavior and props handling
+## Security & Data Handling
 
-### Integration Tests
+- All data is stored and processed locally; no server communication.
+- Image uploads are handled client-side only via the File API.
+- Don't persist sensitive values in localStorage; use `.env.local` for any local config.
 
-- Test component interactions
-- Test state management flows
-- Test user workflows (add room, move furniture, etc.)
+## Future Enhancements (not scheduled)
 
-### Testing Tools
-
-- Jest for test runner
-- React Testing Library for component testing
-- User-event for simulating user interactions
-
-## Build and Deployment
-
-### Development
-
-```bash
-npm start          # Start development server
-npm test           # Run tests in watch mode
-npm run test:ci    # Run tests once (CI mode)
-```
-
-### Production
-
-```bash
-npm run build      # Create production build
-npm run eject      # Eject from CRA (not recommended)
-```
-
-### Build Output
-
-- Static files in `build/` directory
-- Optimized and minified JavaScript/CSS
-- Service worker for caching (if enabled)
-
-## Browser Compatibility
-
-### Minimum Requirements
-
-- ES6+ support (Chrome 51+, Firefox 54+, Safari 10+, Edge 15+)
-- Canvas API support
-- localStorage/sessionStorage support
-- File API for image uploads
-
-### Progressive Enhancement
-
-- Graceful degradation for older browsers
-- Feature detection for advanced capabilities
-- Responsive design for mobile/tablet
-
-## Performance Optimization
-
-### Bundle Size
-
-- Tree shaking enabled via Create React App
-- Material-UI components imported individually when possible
-- Consider lazy loading for large feature sets
-
-### Runtime Performance
-
-- Virtual scrolling for large lists (if needed)
-- Debounced input handlers
-- Optimized canvas rendering
-- Efficient state updates
-
-## Security Considerations
-
-### Data Handling
-
-- All data stored locally (no server communication)
-- File uploads processed client-side only
-- No sensitive data persistence
-
-### Input Validation
-
-- Validate user inputs in forms
-- Sanitize file uploads
-- Prevent XSS through proper React practices
-
-## Future Enhancements
-
-### Potential Features
-
-- Export to PDF/PNG
-- Import from CAD files
-- Collaborative editing
-- Cloud storage integration
-- Mobile app version
-- Advanced measurement tools
-- 3D visualization
-
-### Technical Improvements
-
-- State management library (Redux/Zustand)
-- Server-side rendering (Next.js)
-- Progressive Web App features
-- Advanced testing coverage
-- Performance monitoring
+- Export to PDF/PNG; total-sqft constraint logic (NYC listing rules); hotkeys toolbar; rotation in 15° intervals; 3D visualization. See `.cursor/rules/project-instructions.mdc` for design notes on these.
