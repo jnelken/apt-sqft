@@ -3,6 +3,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { styled } from '@mui/material/styles';
 import { Point, Room, Wall, Furniture } from '@/lib/types';
+import { useRuler } from '@/lib/hooks/useRuler';
+import { RulerOverlay } from './ui/RulerOverlay';
 
 /** position relative container */
 const EditorContainer = styled('div')(({ theme }) => ({
@@ -191,6 +193,18 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   const [dragStart, setDragStart] = useState<Point | null>(null);
   const [viewportOffset, setViewportOffset] = useState<Point>({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const {
+    start: rulerStart,
+    end: rulerEnd,
+    isRuling,
+    distance: rulerDistance,
+    beginRuler,
+    updateRuler,
+    endRuler,
+    clearRuler,
+  } = useRuler({ zoom, gridSize, contentRef });
 
   const snapToGrid = useCallback(
     (value: number) => {
@@ -201,30 +215,44 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent, roomId: string) => {
+      // Alt+drag measures over an item without moving it
+      if (e.altKey) {
+        beginRuler(e);
+        e.stopPropagation();
+        return;
+      }
       // Only handle room dragging if not panning and not holding space
       if (!isPanning && !e.shiftKey) {
+        clearRuler();
         setIsDragging(true);
         setDragStart({ x: e.clientX, y: e.clientY });
         onRoomSelect(roomId);
         e.stopPropagation(); // Prevent event from bubbling up to container
       }
     },
-    [onRoomSelect, isPanning],
+    [onRoomSelect, isPanning, beginRuler, clearRuler],
   );
 
   const handleContainerMouseDown = useCallback(
     (e: React.MouseEvent) => {
+      // Alt+drag starts a ruler measurement anywhere on the canvas
+      if (e.altKey) {
+        beginRuler(e);
+        return;
+      }
       // Start panning if holding shift or right mouse button
       if (e.shiftKey || e.button === 2) {
         e.preventDefault();
+        clearRuler();
         setIsPanning(true);
         setDragStart({ x: e.clientX, y: e.clientY });
       } else {
-        // Clear selection when clicking empty space
+        // Clear selection and any measurement when clicking empty space
+        clearRuler();
         onRoomSelect(null);
       }
     },
-    [onRoomSelect],
+    [onRoomSelect, beginRuler, clearRuler],
   );
 
   const handleResizeStart = useCallback(
@@ -240,6 +268,11 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
+      if (isRuling) {
+        updateRuler(e);
+        return;
+      }
+
       if (!dragStart) return;
 
       if (isPanning) {
@@ -313,6 +346,8 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       }
     },
     [
+      isRuling,
+      updateRuler,
       isPanning,
       isDragging,
       isResizing,
@@ -329,6 +364,10 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   );
 
   const handleMouseUp = useCallback(() => {
+    if (isRuling) {
+      // Keep the measurement on screen until the next interaction
+      endRuler();
+    }
     if (selectedRoomId) {
       if (isDragging) {
         // Find the selected item in either rooms or furniture
@@ -384,6 +423,8 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
     setResizeWall(null);
     setDragStart(null);
   }, [
+    isRuling,
+    endRuler,
     selectedRoomId,
     rooms,
     furniture,
@@ -407,6 +448,8 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       const synthetic = {
         clientX: e.clientX,
         clientY: e.clientY,
+        shiftKey: e.shiftKey,
+        altKey: e.altKey,
         // No-op to satisfy potential event usage
         stopPropagation: () => {},
         preventDefault: () => {},
@@ -417,7 +460,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   );
 
   useEffect(() => {
-    if (isDragging || isPanning) {
+    if (isDragging || isPanning || isRuling) {
       window.addEventListener('mousemove', handleWindowMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     }
@@ -425,7 +468,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       window.removeEventListener('mousemove', handleWindowMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, isPanning, handleWindowMouseMove, handleMouseUp]);
+  }, [isDragging, isPanning, isRuling, handleWindowMouseMove, handleMouseUp]);
 
   return (
     <EditorContainer
@@ -435,8 +478,10 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onContextMenu={handleContextMenu}
+      style={{ cursor: isRuling ? 'crosshair' : undefined }}
     >
       <EditorContent
+        ref={contentRef}
         zoom={zoom}
         style={{
           transform: `translate(calc(-50% + ${viewportOffset.x}px), calc(-50% + ${viewportOffset.y}px)) scale(${zoom})`,
@@ -525,6 +570,14 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
           </RoomElement>
         ))}
       </EditorContent>
+      <RulerOverlay
+        start={rulerStart}
+        end={rulerEnd}
+        distance={rulerDistance}
+        zoom={zoom}
+        containerRef={containerRef}
+        contentRef={contentRef}
+      />
     </EditorContainer>
   );
 };
