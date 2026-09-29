@@ -36,6 +36,20 @@ const getFurnitureFromInstances = (
     .filter((furniture): furniture is Furniture => furniture !== null);
 };
 
+/**
+ * A plain rectangle's area is its bounding box. A room with custom points isn't
+ * a rectangle, so its existing area scales by the same ratio as the box.
+ */
+export const scaledSqFootage = (
+  room: Room,
+  width: number,
+  height: number,
+): number => {
+  const boxArea = room.width * room.height;
+  if (room.points.length < 3 || boxArea <= 0) return (width * height) / 144;
+  return room.sqFootage * ((width * height) / boxArea);
+};
+
 interface UseItemSelectionReturn {
   selectedRoom: Room | undefined;
   selectedFurniture: Furniture | undefined;
@@ -238,7 +252,7 @@ export const useItemSelection = ({
                 width,
                 height,
                 points,
-                sqFootage: (width * height) / 144,
+                sqFootage: scaledSqFootage(room, width, height),
               }
             : room,
         ),

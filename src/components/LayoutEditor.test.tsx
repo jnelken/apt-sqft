@@ -15,11 +15,14 @@ const room: Room = {
   y: 0,
 };
 
-const renderEditor = (editorMode: EditorMode) => {
+const renderEditor = (
+  editorMode: EditorMode,
+  selectedRoomId: string | null = null,
+) => {
   const props = {
     rooms: [room],
     furniture: [],
-    selectedRoomId: null,
+    selectedRoomId,
     onRoomSelect: jest.fn(),
     onRoomMove: jest.fn(),
     onRoomResize: jest.fn(),
@@ -112,6 +115,15 @@ describe('LayoutEditor editor modes', () => {
     );
     expect(props.onRoomMove).not.toHaveBeenCalled();
     expect(props.onRoomResize).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ['select', 4],
+    ['scale', 0],
+    ['ruler', 0],
+  ] as const)('%s mode shows %i resize handles', (mode, count) => {
+    const { roomElement } = renderEditor(mode, 'room1');
+    expect(roomElement.querySelectorAll(':scope > div')).toHaveLength(count);
   });
 
   test('select mode: dragging a room moves it rather than scaling', () => {

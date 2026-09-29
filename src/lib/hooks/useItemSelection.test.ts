@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { useItemSelection } from './useItemSelection';
+import { scaledSqFootage, useItemSelection } from './useItemSelection';
 import {
   AppState,
   Room,
@@ -288,6 +288,25 @@ describe('useItemSelection', () => {
     expect(updatedRoom.height).toBe(240);
     expect(updatedRoom.points).toEqual(points);
     expect(updatedRoom.sqFootage).toBe(480);
+  });
+
+  test("scaledSqFootage keeps an irregular room's area in proportion", () => {
+    const lShaped = {
+      ...createMockRoom('room1', 'L'),
+      width: 144,
+      height: 120,
+      sqFootage: 90,
+      points: [
+        { x: 0, y: 0 },
+        { x: 144, y: 0 },
+        { x: 144, y: 120 },
+        { x: 72, y: 120 },
+      ],
+    };
+    // Doubling both dimensions quadruples the area
+    expect(scaledSqFootage(lShaped, 288, 240)).toBe(360);
+    // A rectangle uses its bounding box
+    expect(scaledSqFootage(createMockRoom('r2', 'R'), 144, 144)).toBe(144);
   });
 
   test('handleRoomScale commits the final room size to history', () => {

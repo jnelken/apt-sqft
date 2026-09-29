@@ -522,6 +522,8 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   ]);
 
   const modeCursor = MODE_CURSORS[editorMode];
+  // Handles would bypass the active tool, so only select mode offers them
+  const showResizeHandles = editorMode === 'select';
 
   return (
     <EditorContainer
@@ -561,7 +563,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
             }}
             onMouseDown={(e) => handleMouseDown(e, room.id)}
           >
-            {selectedRoomId === room.id && (
+            {showResizeHandles && selectedRoomId === room.id && (
               <>
                 <ResizeHandle
                   position="e"
@@ -602,7 +604,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
             }}
             onMouseDown={(e) => handleMouseDown(e, item.id)}
           >
-            {selectedRoomId === item.id && (
+            {showResizeHandles && selectedRoomId === item.id && (
               <>
                 <ResizeHandle
                   position="e"
