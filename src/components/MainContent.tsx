@@ -1,7 +1,8 @@
 import React from 'react';
 import Box from '@mui/material/Box';
 import { LayoutEditor } from './LayoutEditor';
-import { Room, Furniture } from '@/lib/types';
+import { EditorMode, Room, Furniture } from '@/lib/types';
+import { ScaledShape } from '@/lib/utils/scaleItem';
 
 interface MainContentProps {
   rooms: Room[];
@@ -9,7 +10,18 @@ interface MainContentProps {
   selectedRoomId: string | null;
   onRoomSelect: (roomId: string | null) => void;
   onRoomMove: (roomId: string, x: number, y: number) => void;
-  onRoomResize: (roomId: string, width: number, height: number, isResizing?: boolean) => void;
+  onRoomResize: (
+    roomId: string,
+    width: number,
+    height: number,
+    isResizing?: boolean,
+  ) => void;
+  onRoomScale: (
+    roomId: string,
+    scaled: ScaledShape,
+    isScaling?: boolean,
+  ) => void;
+  editorMode: EditorMode;
   gridSize: number;
   zoom: number;
   backgroundImage: string | null;
@@ -26,6 +38,8 @@ export function MainContent({
   onRoomSelect,
   onRoomMove,
   onRoomResize,
+  onRoomScale,
+  editorMode,
   gridSize,
   zoom,
   backgroundImage,
@@ -43,6 +57,8 @@ export function MainContent({
         onRoomSelect={onRoomSelect}
         onRoomMove={onRoomMove}
         onRoomResize={onRoomResize}
+        onRoomScale={onRoomScale}
+        editorMode={editorMode}
         gridSize={gridSize}
         zoom={zoom}
         backgroundImage={backgroundImage}

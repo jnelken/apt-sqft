@@ -7,6 +7,7 @@ import {
   FurnitureInstance,
   FloorPlan,
 } from '@/lib/types';
+import { ScaledShape } from '@/lib/utils/scaleItem';
 
 interface UseItemSelectionProps {
   appState: AppState;
@@ -50,6 +51,11 @@ interface UseItemSelectionReturn {
     width: number,
     height: number,
     isResizing?: boolean,
+  ) => void;
+  handleRoomScale: (
+    roomId: string,
+    scaled: ScaledShape,
+    isScaling?: boolean,
   ) => void;
   handleSwapDimensions: () => void;
   handleDeleteSelected: () => void;
@@ -209,6 +215,44 @@ export const useItemSelection = ({
     ],
   );
 
+  const handleRoomScale = useCallback(
+    (
+      roomId: string,
+      { width, height, points }: ScaledShape,
+      isScaling: boolean = false,
+    ) => {
+      const isRoom = appState.floorPlan.rooms.some(
+        (room) => room.id === roomId,
+      );
+      if (!isRoom) {
+        handleRoomResize(roomId, width, height, isScaling);
+        return;
+      }
+
+      const newFloorPlan = {
+        ...appState.floorPlan,
+        rooms: appState.floorPlan.rooms.map((room) =>
+          room.id === roomId
+            ? {
+                ...room,
+                width,
+                height,
+                points,
+                sqFootage: (width * height) / 144,
+              }
+            : room,
+        ),
+      };
+
+      if (!isScaling) {
+        pushToHistory(newFloorPlan);
+      } else {
+        setAppState((prev) => ({ ...prev, floorPlan: newFloorPlan }));
+      }
+    },
+    [appState.floorPlan, handleRoomResize, pushToHistory, setAppState],
+  );
+
   const handleSwapDimensions = useCallback(() => {
     if (appState.selectedRoomId) {
       const selectedRoom = appState.floorPlan.rooms.find(
@@ -302,6 +346,7 @@ export const useItemSelection = ({
     handleRoomSelect,
     handleRoomMove,
     handleRoomResize,
+    handleRoomScale,
     handleSwapDimensions,
     handleDeleteSelected,
     handleTabChange,

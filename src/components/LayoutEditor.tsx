@@ -2,8 +2,10 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { styled } from '@mui/material/styles';
-import { Point, Room, Wall, Furniture } from '@/lib/types';
+import { EditorMode, Point, Room, Wall, Furniture } from '@/lib/types';
 import { useRuler } from '@/lib/hooks/useRuler';
+import { useScaleDrag } from '@/lib/hooks/useScaleDrag';
+import { ScaledShape } from '@/lib/utils/scaleItem';
 import { RulerOverlay } from './ui/RulerOverlay';
 
 /** position relative container */
@@ -145,6 +147,12 @@ const ResizeHandle = styled('div')<{ position: string }>(({ position }) => ({
   }),
 }));
 
+const MODE_CURSORS: Record<EditorMode, string | undefined> = {
+  select: undefined,
+  scale: 'ns-resize',
+  ruler: 'crosshair',
+};
+
 interface LayoutEditorProps {
   rooms: Room[];
   furniture: Furniture[];
@@ -162,6 +170,12 @@ interface LayoutEditorProps {
     height: number,
     isResizing: boolean,
   ) => void;
+  onRoomScale: (
+    roomId: string,
+    scaled: ScaledShape,
+    isScaling: boolean,
+  ) => void;
+  editorMode: EditorMode;
   gridSize: number;
   gridOpacity: number;
   zoom: number;
@@ -178,6 +192,8 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   onRoomSelect,
   onRoomMove,
   onRoomResize,
+  onRoomScale,
+  editorMode,
   gridSize,
   gridOpacity,
   zoom,
@@ -206,6 +222,19 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
     clearRuler,
   } = useRuler({ zoom, gridSize, contentRef });
 
+  const { isScaling, beginScale, updateScale, endScale } = useScaleDrag({
+    zoom,
+    gridSize,
+    onItemScale: onRoomScale,
+  });
+
+  /** Alt+drag always measures; ruler mode measures on a plain left-drag. */
+  const shouldStartRuler = useCallback(
+    (e: React.MouseEvent) =>
+      e.altKey || (editorMode === 'ruler' && e.button === 0),
+    [editorMode],
+  );
+
   const findItem = useCallback(
     (itemId: string): Room | Furniture | undefined =>
       rooms.find((room) => room.id === itemId) ??
@@ -222,9 +251,19 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent, roomId: string) => {
-      // Alt+drag measures over an item without moving it
-      if (e.altKey) {
+      // Measure over an item without moving it
+      if (shouldStartRuler(e)) {
         beginRuler(e);
+        e.stopPropagation();
+        return;
+      }
+      if (editorMode === 'scale' && e.button === 0) {
+        const item = findItem(roomId);
+        if (item) {
+          clearRuler();
+          onRoomSelect(roomId);
+          beginScale(e, roomId, item);
+        }
         e.stopPropagation();
         return;
       }
@@ -237,13 +276,22 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
         e.stopPropagation(); // Prevent event from bubbling up to container
       }
     },
-    [onRoomSelect, isPanning, beginRuler, clearRuler],
+    [
+      onRoomSelect,
+      isPanning,
+      shouldStartRuler,
+      beginRuler,
+      clearRuler,
+      editorMode,
+      findItem,
+      beginScale,
+    ],
   );
 
   const handleContainerMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      // Alt+drag starts a ruler measurement anywhere on the canvas
-      if (e.altKey) {
+      // Start a ruler measurement anywhere on the canvas
+      if (shouldStartRuler(e)) {
         beginRuler(e);
         return;
       }
@@ -259,7 +307,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
         onRoomSelect(null);
       }
     },
-    [onRoomSelect, beginRuler, clearRuler],
+    [onRoomSelect, shouldStartRuler, beginRuler, clearRuler],
   );
 
   const handleResizeStart = useCallback(
@@ -277,6 +325,10 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
     (e: React.MouseEvent) => {
       if (isRuling) {
         updateRuler(e);
+        return;
+      }
+      if (isScaling) {
+        updateScale(e);
         return;
       }
 
@@ -345,6 +397,8 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
     [
       isRuling,
       updateRuler,
+      isScaling,
+      updateScale,
       isPanning,
       isDragging,
       isResizing,
@@ -363,6 +417,9 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
     if (isRuling) {
       // Keep the measurement on screen until the next interaction
       endRuler();
+    }
+    if (isScaling) {
+      endScale();
     }
     if (selectedRoomId) {
       if (isDragging) {
@@ -411,6 +468,8 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   }, [
     isRuling,
     endRuler,
+    isScaling,
+    endScale,
     selectedRoomId,
     findItem,
     snapToGrid,
@@ -445,7 +504,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   );
 
   useEffect(() => {
-    if (isDragging || isPanning || isRuling) {
+    if (isDragging || isPanning || isRuling || isScaling) {
       window.addEventListener('mousemove', handleWindowMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     }
@@ -453,7 +512,16 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       window.removeEventListener('mousemove', handleWindowMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, isPanning, isRuling, handleWindowMouseMove, handleMouseUp]);
+  }, [
+    isDragging,
+    isPanning,
+    isRuling,
+    isScaling,
+    handleWindowMouseMove,
+    handleMouseUp,
+  ]);
+
+  const modeCursor = MODE_CURSORS[editorMode];
 
   return (
     <EditorContainer
@@ -463,7 +531,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onContextMenu={handleContextMenu}
-      style={{ cursor: isRuling ? 'crosshair' : undefined }}
+      style={{ cursor: isRuling ? 'crosshair' : modeCursor }}
     >
       <EditorContent
         ref={contentRef}
@@ -489,6 +557,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
               width: `${room.width}em`,
               height: `${room.height}em`,
               borderColor: selectedRoomId === room.id ? '#2196f3' : wallColor,
+              cursor: modeCursor,
             }}
             onMouseDown={(e) => handleMouseDown(e, room.id)}
           >
@@ -529,6 +598,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
               width: `${item.width}em`,
               height: `${item.height}em`,
               borderColor: selectedRoomId === item.id ? '#2196f3' : wallColor,
+              cursor: modeCursor,
             }}
             onMouseDown={(e) => handleMouseDown(e, item.id)}
           >

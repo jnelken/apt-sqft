@@ -55,6 +55,9 @@ export interface FurnitureInstance {
   rotation?: number; // For future use
 }
 
+/** Canvas interaction mode chosen from the Hotkeys toolbar or a held hotkey. */
+export type EditorMode = 'select' | 'scale' | 'ruler';
+
 export interface AppState {
   floorPlan: FloorPlan;
   furnitureInventory: FurnitureInventory;

@@ -6,6 +6,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
 import { FloorPlanTabs } from '@/components/FloorPlanTabs';
 import { MainToolbar } from '@/components/MainToolbar';
+import { HotkeysToolbar } from '@/components/HotkeysToolbar';
 import { LeftPanel } from '@/components/LeftPanel';
 import { MainContent } from '@/components/MainContent';
 import { RightSidebar } from '@/components/RightSidebar';
@@ -26,6 +27,7 @@ import { useFurnitureManager } from '@/lib/hooks/useFurnitureManager';
 import { useItemSelection } from '@/lib/hooks/useItemSelection';
 import { useKeyboardShortcuts } from '@/lib/hooks/useKeyboardShortcuts';
 import { useAppSettings } from '@/lib/hooks/useAppSettings';
+import { useEditorMode } from '@/lib/hooks/useEditorMode';
 
 // Helper function to get furniture objects from instances
 const getFurnitureFromInstances = (
@@ -107,6 +109,7 @@ function App() {
     handleRoomSelect,
     handleRoomMove,
     handleRoomResize,
+    handleRoomScale,
     handleSwapDimensions,
     handleDeleteSelected,
     handleTabChange,
@@ -136,6 +139,8 @@ function App() {
     handleRedo,
     handleDeleteSelected,
   });
+
+  const { editorMode, setEditorMode } = useEditorMode();
 
   const theme = useMemo(
     () =>
@@ -191,6 +196,10 @@ function App() {
           theme={appState.theme}
           onThemeChange={handleThemeChange}
         />
+        <HotkeysToolbar
+          editorMode={editorMode}
+          onEditorModeChange={setEditorMode}
+        />
         <Box sx={{ flexGrow: 1, display: 'flex' }}>
           <LeftPanel
             isOpen={isLeftPanelOpen}
@@ -221,6 +230,8 @@ function App() {
             onRoomSelect={handleRoomSelect}
             onRoomMove={handleRoomMove}
             onRoomResize={handleRoomResize}
+            onRoomScale={handleRoomScale}
+            editorMode={editorMode}
             gridSize={appState.gridSize}
             zoom={appState.zoom}
             backgroundImage={appState.floorPlan.backgroundImage}

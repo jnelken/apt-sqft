@@ -102,6 +102,38 @@ describe('App Component', () => {
     expect(redoButton).toBeDisabled();
   });
 
+  test('hotkeys toolbar and held hotkeys drive the same editor mode', () => {
+    render(<App />);
+
+    const scale = screen.getByRole('button', { name: 'Scale (S)' });
+    const ruler = screen.getByRole('button', { name: 'Ruler (Alt)' });
+
+    fireEvent.keyDown(window, { key: 's' });
+    expect(scale).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyUp(window, { key: 's' });
+    expect(scale).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(ruler);
+    expect(ruler).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyDown(window, { key: 's' });
+    expect(scale).toHaveAttribute('aria-pressed', 'true');
+    expect(ruler).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.keyUp(window, { key: 's' });
+    expect(ruler).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('typing S in a text field does not switch modes', () => {
+    render(<App />);
+
+    const nameInput = screen.getByDisplayValue('Untitled');
+    fireEvent.keyDown(nameInput, { key: 's' });
+
+    expect(screen.getByRole('button', { name: 'Scale (S)' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
   test('handles keyboard shortcuts without crashing', () => {
     render(<App />);
 

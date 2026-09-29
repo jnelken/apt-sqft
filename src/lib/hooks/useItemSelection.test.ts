@@ -1,8 +1,19 @@
 import { renderHook, act } from '@testing-library/react';
 import { useItemSelection } from './useItemSelection';
-import { AppState, Room, Furniture, FurnitureInstance, FloorPlan } from '@/lib/types';
+import {
+  AppState,
+  Room,
+  Furniture,
+  FurnitureInstance,
+  FloorPlan,
+} from '@/lib/types';
 
-const createMockRoom = (id: string, name: string, x: number = 100, y: number = 100): Room => ({
+const createMockRoom = (
+  id: string,
+  name: string,
+  x: number = 100,
+  y: number = 100,
+): Room => ({
   id,
   name,
   height: 120,
@@ -28,7 +39,11 @@ const createMockFurniture = (id: string, name: string): Furniture => ({
   color: '#ffffff',
 });
 
-const createMockFurnitureInstance = (furnitureId: string, x: number = 200, y: number = 200): FurnitureInstance => ({
+const createMockFurnitureInstance = (
+  furnitureId: string,
+  x: number = 200,
+  y: number = 200,
+): FurnitureInstance => ({
   furnitureId,
   x,
   y,
@@ -36,7 +51,7 @@ const createMockFurnitureInstance = (furnitureId: string, x: number = 200, y: nu
 
 const createMockFloorPlan = (
   rooms: Room[] = [],
-  furnitureInstances: FurnitureInstance[] = []
+  furnitureInstances: FurnitureInstance[] = [],
 ): FloorPlan => ({
   name: 'Test Plan',
   rooms,
@@ -49,7 +64,7 @@ const createMockAppState = (
   rooms: Room[] = [],
   furnitureInstances: FurnitureInstance[] = [],
   furnitureInventory: { [key: string]: Furniture } = {},
-  selectedRoomId: string | null = null
+  selectedRoomId: string | null = null,
 ): AppState => ({
   floorPlan: createMockFloorPlan(rooms, furnitureInstances),
   furnitureInventory,
@@ -92,7 +107,12 @@ describe('useItemSelection', () => {
   test('selectedFurniture returns correct furniture when selected', () => {
     const furniture = createMockFurniture('furniture1', 'Sofa');
     const instance = createMockFurnitureInstance('furniture1', 300, 400);
-    const appState = createMockAppState([], [instance], { furniture1: furniture }, 'furniture1');
+    const appState = createMockAppState(
+      [],
+      [instance],
+      { furniture1: furniture },
+      'furniture1',
+    );
     const props = { ...defaultProps, appState };
 
     const { result } = renderHook(() => useItemSelection(props));
@@ -151,7 +171,7 @@ describe('useItemSelection', () => {
     const setAppStateCall = props.setAppState.mock.calls[0][0];
     const newState = setAppStateCall(props.appState);
     const updatedRoom = newState.floorPlan.rooms[0];
-    
+
     expect(updatedRoom.x).toBe(200);
     expect(updatedRoom.y).toBe(300);
   });
@@ -168,7 +188,7 @@ describe('useItemSelection', () => {
     });
 
     expect(props.pushToHistory).toHaveBeenCalled();
-    
+
     const pushToHistoryCall = props.pushToHistory.mock.calls[0][0];
     const updatedRoom = pushToHistoryCall.rooms[0];
     expect(updatedRoom.x).toBe(200);
@@ -178,7 +198,9 @@ describe('useItemSelection', () => {
   test('handleRoomMove updates furniture instance position', () => {
     const furniture = createMockFurniture('furniture1', 'Sofa');
     const instance = createMockFurnitureInstance('furniture1', 100, 100);
-    const appState = createMockAppState([], [instance], { furniture1: furniture });
+    const appState = createMockAppState([], [instance], {
+      furniture1: furniture,
+    });
     const props = { ...defaultProps, appState };
 
     const { result } = renderHook(() => useItemSelection(props));
@@ -188,7 +210,7 @@ describe('useItemSelection', () => {
     });
 
     expect(props.pushToHistory).toHaveBeenCalled();
-    
+
     const pushToHistoryCall = props.pushToHistory.mock.calls[0][0];
     const updatedInstance = pushToHistoryCall.furnitureInstances[0];
     expect(updatedInstance.x).toBe(250);
@@ -207,7 +229,7 @@ describe('useItemSelection', () => {
     });
 
     expect(props.pushToHistory).toHaveBeenCalled();
-    
+
     const pushToHistoryCall = props.pushToHistory.mock.calls[0][0];
     const updatedRoom = pushToHistoryCall.rooms[0];
     expect(updatedRoom.width).toBe(200);
@@ -217,7 +239,9 @@ describe('useItemSelection', () => {
   test('handleRoomResize updates furniture inventory dimensions', () => {
     const furniture = createMockFurniture('furniture1', 'Sofa');
     const instance = createMockFurnitureInstance('furniture1');
-    const appState = createMockAppState([], [instance], { furniture1: furniture });
+    const appState = createMockAppState([], [instance], {
+      furniture1: furniture,
+    });
     const props = { ...defaultProps, appState };
 
     const { result } = renderHook(() => useItemSelection(props));
@@ -231,10 +255,85 @@ describe('useItemSelection', () => {
 
     const firstSetAppStateCall = props.setAppState.mock.calls[0][0];
     const stateWithUpdatedInventory = firstSetAppStateCall(props.appState);
-    const updatedFurniture = stateWithUpdatedInventory.furnitureInventory['furniture1'];
-    
+    const updatedFurniture =
+      stateWithUpdatedInventory.furnitureInventory['furniture1'];
+
     expect(updatedFurniture.width).toBe(100);
     expect(updatedFurniture.height).toBe(70);
+  });
+
+  test('handleRoomScale previews room size, points and area without history', () => {
+    const room = createMockRoom('room1', 'Living Room', 0, 0);
+    const appState = createMockAppState([room]);
+    const props = { ...defaultProps, appState };
+
+    const { result } = renderHook(() => useItemSelection(props));
+    const points = [
+      { x: 0, y: 0 },
+      { x: 288, y: 240 },
+    ];
+
+    act(() => {
+      result.current.handleRoomScale(
+        'room1',
+        { width: 288, height: 240, points },
+        true,
+      );
+    });
+
+    expect(props.pushToHistory).not.toHaveBeenCalled();
+    const newState = props.setAppState.mock.calls[0][0](props.appState);
+    const updatedRoom = newState.floorPlan.rooms[0];
+    expect(updatedRoom.width).toBe(288);
+    expect(updatedRoom.height).toBe(240);
+    expect(updatedRoom.points).toEqual(points);
+    expect(updatedRoom.sqFootage).toBe(480);
+  });
+
+  test('handleRoomScale commits the final room size to history', () => {
+    const room = createMockRoom('room1', 'Living Room');
+    const appState = createMockAppState([room]);
+    const props = { ...defaultProps, appState };
+
+    const { result } = renderHook(() => useItemSelection(props));
+
+    act(() => {
+      result.current.handleRoomScale('room1', {
+        width: 168,
+        height: 144,
+        points: [],
+      });
+    });
+
+    const committedRoom = props.pushToHistory.mock.calls[0][0].rooms[0];
+    expect(committedRoom.width).toBe(168);
+    expect(committedRoom.height).toBe(144);
+  });
+
+  test('handleRoomScale resizes furniture in the inventory', () => {
+    const furniture = createMockFurniture('furniture1', 'Sofa');
+    const instance = createMockFurnitureInstance('furniture1');
+    const appState = createMockAppState([], [instance], {
+      furniture1: furniture,
+    });
+    const props = { ...defaultProps, appState };
+
+    const { result } = renderHook(() => useItemSelection(props));
+
+    act(() => {
+      result.current.handleRoomScale('furniture1', {
+        width: 96,
+        height: 72,
+        points: [],
+      });
+    });
+
+    const stateWithInventory = props.setAppState.mock.calls[0][0](
+      props.appState,
+    );
+    expect(stateWithInventory.furnitureInventory.furniture1.width).toBe(96);
+    expect(stateWithInventory.furnitureInventory.furniture1.height).toBe(72);
+    expect(props.pushToHistory).toHaveBeenCalled();
   });
 
   test('handleSwapDimensions swaps room dimensions', () => {
@@ -251,7 +350,7 @@ describe('useItemSelection', () => {
     });
 
     expect(props.pushToHistory).toHaveBeenCalled();
-    
+
     const pushToHistoryCall = props.pushToHistory.mock.calls[0][0];
     const updatedRoom = pushToHistoryCall.rooms[0];
     expect(updatedRoom.width).toBe(120); // Original height
@@ -263,7 +362,12 @@ describe('useItemSelection', () => {
     furniture.width = 80;
     furniture.height = 60;
     const instance = createMockFurnitureInstance('furniture1');
-    const appState = createMockAppState([], [instance], { furniture1: furniture }, 'furniture1');
+    const appState = createMockAppState(
+      [],
+      [instance],
+      { furniture1: furniture },
+      'furniture1',
+    );
     const props = { ...defaultProps, appState };
 
     const { result } = renderHook(() => useItemSelection(props));
@@ -278,7 +382,7 @@ describe('useItemSelection', () => {
     const setAppStateCall = props.setAppState.mock.calls[0][0];
     const newState = setAppStateCall(props.appState);
     const updatedFurniture = newState.furnitureInventory['furniture1'];
-    
+
     expect(updatedFurniture.width).toBe(60); // Original height
     expect(updatedFurniture.height).toBe(80); // Original width
   });
@@ -301,7 +405,12 @@ describe('useItemSelection', () => {
   test('handleDeleteSelected calls handleDeleteFurniture for furniture', () => {
     const furniture = createMockFurniture('furniture1', 'Sofa');
     const instance = createMockFurnitureInstance('furniture1');
-    const appState = createMockAppState([], [instance], { furniture1: furniture }, 'furniture1');
+    const appState = createMockAppState(
+      [],
+      [instance],
+      { furniture1: furniture },
+      'furniture1',
+    );
     const props = { ...defaultProps, appState };
 
     const { result } = renderHook(() => useItemSelection(props));
