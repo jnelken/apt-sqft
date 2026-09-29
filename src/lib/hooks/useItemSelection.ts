@@ -239,6 +239,7 @@ export const useItemSelection = ({
         (room) => room.id === roomId,
       );
       if (!isRoom) {
+        // FIXME(advance-roadmap review): furniture dimensions live in furnitureInventory, which undo/redo history doesn't snapshot, so a furniture scale (like a furniture resize) can't be undone — codex, 2026-09-29
         handleRoomResize(roomId, width, height, isScaling);
         return;
       }
