@@ -206,6 +206,13 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
     clearRuler,
   } = useRuler({ zoom, gridSize, contentRef });
 
+  const findItem = useCallback(
+    (itemId: string): Room | Furniture | undefined =>
+      rooms.find((room) => room.id === itemId) ??
+      furniture.find((item) => item.id === itemId),
+    [rooms, furniture],
+  );
+
   const snapToGrid = useCallback(
     (value: number) => {
       return Math.round(value / gridSize) * gridSize;
@@ -284,12 +291,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
         }));
         setDragStart({ x: e.clientX, y: e.clientY });
       } else if (isDragging && selectedRoomId) {
-        // Find the selected item in either rooms or furniture
-        const selectedRoom = rooms.find((room) => room.id === selectedRoomId);
-        const selectedFurniture = furniture.find(
-          (item) => item.id === selectedRoomId,
-        );
-        const selectedItem = selectedRoom || selectedFurniture;
+        const selectedItem = findItem(selectedRoomId);
 
         if (!selectedItem) return;
 
@@ -303,12 +305,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
         onRoomMove(selectedRoomId, newX, newY, true);
         setDragStart({ x: e.clientX, y: e.clientY });
       } else if (isResizing && selectedRoomId && resizeWall) {
-        // Find the selected item in either rooms or furniture
-        const selectedRoom = rooms.find((room) => room.id === selectedRoomId);
-        const selectedFurniture = furniture.find(
-          (item) => item.id === selectedRoomId,
-        );
-        const selectedItem = selectedRoom || selectedFurniture;
+        const selectedItem = findItem(selectedRoomId);
 
         if (!selectedItem) return;
 
@@ -356,8 +353,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       resizeWall,
       onRoomMove,
       onRoomResize,
-      rooms,
-      furniture,
+      findItem,
       gridSize,
       zoom,
     ],
@@ -370,12 +366,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
     }
     if (selectedRoomId) {
       if (isDragging) {
-        // Find the selected item in either rooms or furniture
-        const selectedRoom = rooms.find((room) => room.id === selectedRoomId);
-        const selectedFurniture = furniture.find(
-          (item) => item.id === selectedRoomId,
-        );
-        const selectedItem = selectedRoom || selectedFurniture;
+        const selectedItem = findItem(selectedRoomId);
 
         if (selectedItem) {
           const snappedX = snapToGrid(selectedItem.x);
@@ -383,12 +374,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
           onRoomMove(selectedRoomId, snappedX, snappedY, false);
         }
       } else if (isResizing) {
-        // Find the selected item in either rooms or furniture
-        const selectedRoom = rooms.find((room) => room.id === selectedRoomId);
-        const selectedFurniture = furniture.find(
-          (item) => item.id === selectedRoomId,
-        );
-        const selectedItem = selectedRoom || selectedFurniture;
+        const selectedItem = findItem(selectedRoomId);
 
         if (selectedItem) {
           // Snap dimensions to grid
@@ -426,8 +412,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
     isRuling,
     endRuler,
     selectedRoomId,
-    rooms,
-    furniture,
+    findItem,
     snapToGrid,
     onRoomMove,
     onRoomResize,
