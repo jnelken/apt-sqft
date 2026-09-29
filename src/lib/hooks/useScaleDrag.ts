@@ -53,7 +53,8 @@ export function useScaleDrag({
         gridSize,
       );
       const scaled = scaleShapeByGridSteps(drag.base, steps, gridSize);
-      lastScaledRef.current = scaled;
+      // Back at zero steps the preview is the original shape: nothing to commit
+      lastScaledRef.current = steps === 0 ? null : scaled;
       onItemScale(drag.itemId, scaled, true);
     },
     [drag, zoom, gridSize, onItemScale],

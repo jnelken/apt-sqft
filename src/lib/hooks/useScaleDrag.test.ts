@@ -33,6 +33,29 @@ describe('useScaleDrag', () => {
     expect(result.current.isScaling).toBe(false);
   });
 
+  test('a drag that ends back at zero steps commits nothing', () => {
+    const onItemScale = jest.fn();
+    const { result } = renderHook(() =>
+      useScaleDrag({ zoom: 1, gridSize: 12, onItemScale }),
+    );
+
+    act(() => result.current.beginScale({ clientY: 200 }, 'room1', base));
+    act(() => result.current.updateScale({ clientY: 176 }));
+    act(() => result.current.updateScale({ clientY: 197 }));
+    act(() => result.current.endScale());
+
+    expect(onItemScale).toHaveBeenLastCalledWith(
+      'room1',
+      { width: 144, height: 120, points: [] },
+      true,
+    );
+    expect(onItemScale).not.toHaveBeenCalledWith(
+      'room1',
+      expect.anything(),
+      false,
+    );
+  });
+
   test('a click without movement commits nothing', () => {
     const onItemScale = jest.fn();
     const { result } = renderHook(() =>
