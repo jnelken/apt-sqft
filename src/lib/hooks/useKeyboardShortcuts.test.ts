@@ -19,7 +19,7 @@ describe('useKeyboardShortcuts', () => {
       key: 'z',
       metaKey: true,
     });
-    
+
     window.dispatchEvent(event);
 
     expect(defaultProps.handleUndo).toHaveBeenCalledTimes(1);
@@ -34,7 +34,7 @@ describe('useKeyboardShortcuts', () => {
       metaKey: true,
       shiftKey: true,
     });
-    
+
     window.dispatchEvent(event);
 
     expect(defaultProps.handleRedo).toHaveBeenCalledTimes(1);
@@ -48,7 +48,7 @@ describe('useKeyboardShortcuts', () => {
       key: 'y',
       metaKey: true,
     });
-    
+
     window.dispatchEvent(event);
 
     expect(defaultProps.handleRedo).toHaveBeenCalledTimes(1);
@@ -61,7 +61,7 @@ describe('useKeyboardShortcuts', () => {
       key: 'z',
       ctrlKey: true,
     });
-    
+
     window.dispatchEvent(event);
 
     expect(defaultProps.handleUndo).toHaveBeenCalledTimes(1);
@@ -73,7 +73,7 @@ describe('useKeyboardShortcuts', () => {
     const event = new KeyboardEvent('keydown', {
       key: 'Delete',
     });
-    
+
     window.dispatchEvent(event);
 
     expect(defaultProps.handleDeleteSelected).toHaveBeenCalledTimes(1);
@@ -85,10 +85,27 @@ describe('useKeyboardShortcuts', () => {
     const event = new KeyboardEvent('keydown', {
       key: 'Backspace',
     });
-    
+
     window.dispatchEvent(event);
 
     expect(defaultProps.handleDeleteSelected).toHaveBeenCalledTimes(1);
+  });
+
+  test('lets Backspace edit text fields instead of deleting the selection', () => {
+    renderHook(() => useKeyboardShortcuts(defaultProps));
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+
+    const event = new KeyboardEvent('keydown', {
+      key: 'Backspace',
+      bubbles: true,
+      cancelable: true,
+    });
+    input.dispatchEvent(event);
+
+    expect(defaultProps.handleDeleteSelected).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+    input.remove();
   });
 
   test('does not trigger handlers for unrelated keys', () => {
@@ -97,7 +114,7 @@ describe('useKeyboardShortcuts', () => {
     const event = new KeyboardEvent('keydown', {
       key: 'a',
     });
-    
+
     window.dispatchEvent(event);
 
     expect(defaultProps.handleUndo).not.toHaveBeenCalled();
@@ -113,7 +130,7 @@ describe('useKeyboardShortcuts', () => {
       metaKey: true,
     });
     const preventDefaultSpy = jest.spyOn(undoEvent, 'preventDefault');
-    
+
     window.dispatchEvent(undoEvent);
 
     expect(preventDefaultSpy).toHaveBeenCalled();
@@ -121,24 +138,26 @@ describe('useKeyboardShortcuts', () => {
 
   test('removes event listener on unmount', () => {
     const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener');
-    
+
     const { unmount } = renderHook(() => useKeyboardShortcuts(defaultProps));
-    
+
     unmount();
 
-    expect(removeEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function));
-    
+    expect(removeEventListenerSpy).toHaveBeenCalledWith(
+      'keydown',
+      expect.any(Function),
+    );
+
     removeEventListenerSpy.mockRestore();
   });
 
   test('updates handlers when dependencies change', () => {
     const newHandleUndo = jest.fn();
     const newProps = { ...defaultProps, handleUndo: newHandleUndo };
-    
-    const { rerender } = renderHook(
-      (props) => useKeyboardShortcuts(props),
-      { initialProps: defaultProps }
-    );
+
+    const { rerender } = renderHook((props) => useKeyboardShortcuts(props), {
+      initialProps: defaultProps,
+    });
 
     // Test with original handler
     const firstEvent = new KeyboardEvent('keydown', {

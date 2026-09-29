@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { isEditableTarget } from '@/lib/utils/isEditableTarget';
 
 interface UseKeyboardShortcutsProps {
   handleUndo: () => void;
@@ -23,7 +24,10 @@ export const useKeyboardShortcuts = ({
       } else if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
         e.preventDefault();
         handleRedo();
-      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+      } else if (
+        (e.key === 'Delete' || e.key === 'Backspace') &&
+        !isEditableTarget(e.target)
+      ) {
         e.preventDefault();
         handleDeleteSelected();
       }
