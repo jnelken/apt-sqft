@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react';
 import { LayoutEditor } from './LayoutEditor';
-import { EditorMode, Room } from '@/lib/types';
+import { EditorMode, Furniture, Room } from '@/lib/types';
 
 const room: Room = {
   id: 'room1',
@@ -15,13 +15,28 @@ const room: Room = {
   y: 0,
 };
 
+const couch: Furniture = {
+  id: 'couch1',
+  name: 'Couch',
+  type: 'sofa',
+  color: '#336699',
+  width: 84,
+  height: 36,
+  sqFootage: 21,
+  livability: 'livable',
+  points: [],
+  x: 24,
+  y: 48,
+};
+
 const renderEditor = (
   editorMode: EditorMode,
   selectedRoomId: string | null = null,
+  items: { rooms?: Room[]; furniture?: Furniture[] } = {},
 ) => {
   const props = {
-    rooms: [room],
-    furniture: [],
+    rooms: items.rooms ?? [room],
+    furniture: items.furniture ?? [],
     selectedRoomId,
     onRoomSelect: jest.fn(),
     onRoomMove: jest.fn(),
@@ -134,4 +149,185 @@ describe('LayoutEditor editor modes', () => {
 
     expect(props.onRoomScale).not.toHaveBeenCalled();
   });
+});
+
+const itemElement = (canvas: HTMLElement, width: number) =>
+  canvas.querySelector(`[style*="width: ${width}em"]`) as HTMLElement;
+
+describe('LayoutEditor item rendering', () => {
+  test('a livable room is transparent, positioned in em, with wall-colored borders', () => {
+    const { roomElement } = renderEditor('select');
+
+    expect(roomElement).toHaveStyle({
+      left: '0em',
+      top: '0em',
+      width: '144em',
+      height: '120em',
+      borderColor: '#000',
+      backgroundColor: 'transparent',
+      opacity: '0.5',
+    });
+  });
+
+  test('a non-livable room is shaded and hatched', () => {
+    const { roomElement } = renderEditor('select', null, {
+      rooms: [{ ...room, livability: 'non-livable' }],
+    });
+
+    expect(roomElement).toHaveStyle({ backgroundColor: 'rgba(0, 0, 0, 0.5)' });
+    const itemRules = Array.from(document.styleSheets)
+      .flatMap((sheet) => Array.from(sheet.cssRules))
+      .map((rule) => rule.cssText)
+      .filter((cssText) =>
+        Array.from(roomElement.classList).some((name) =>
+          cssText.startsWith(`.${name} {`),
+        ),
+      );
+    expect(itemRules.join('')).toContain('repeating-linear-gradient');
+  });
+
+  test('a selected room uses the highlight fill and a blue border', () => {
+    const { roomElement } = renderEditor('scale', 'room1');
+
+    expect(roomElement).toHaveStyle({
+      backgroundColor: '#0ff',
+      borderColor: '#2196f3',
+    });
+  });
+
+  test('furniture is opaque and filled with its own color', () => {
+    const { canvas } = renderEditor('select', null, { furniture: [couch] });
+    const couchElement = itemElement(canvas, 84);
+
+    expect(couchElement).toHaveStyle({
+      left: '24em',
+      top: '48em',
+      height: '36em',
+      borderColor: '#000',
+      backgroundColor: '#336699',
+      opacity: '1',
+    });
+  });
+
+  test('furniture without a color falls back to orange', () => {
+    const { canvas } = renderEditor('select', null, {
+      furniture: [{ ...couch, color: undefined }],
+    });
+
+    expect(itemElement(canvas, 84)).toHaveStyle({ backgroundColor: '#FFA500' });
+  });
+
+  test('selected furniture uses the highlight fill and a blue border', () => {
+    const { canvas } = renderEditor('select', 'couch1', { furniture: [couch] });
+
+    expect(itemElement(canvas, 84)).toHaveStyle({
+      backgroundColor: '#0ff',
+      borderColor: '#2196f3',
+    });
+  });
+
+  test.each([
+    ['select', ''],
+    ['scale', 'ns-resize'],
+    ['ruler', 'crosshair'],
+  ] as const)('%s mode gives items the cursor "%s"', (mode, cursor) => {
+    const { roomElement, canvas } = renderEditor(mode, null, {
+      furniture: [couch],
+    });
+
+    expect(roomElement.style.cursor).toBe(cursor);
+    expect(itemElement(canvas, 84).style.cursor).toBe(cursor);
+  });
+
+  test.each([
+    ['select', 4],
+    ['scale', 0],
+    ['ruler', 0],
+  ] as const)(
+    '%s mode shows %i resize handles on selected furniture',
+    (mode, count) => {
+      const { canvas } = renderEditor(mode, 'couch1', { furniture: [couch] });
+      expect(
+        itemElement(canvas, 84).querySelectorAll(':scope > div'),
+      ).toHaveLength(count);
+    },
+  );
+
+  test('only the selected item gets resize handles', () => {
+    const { roomElement, canvas } = renderEditor('select', 'couch1', {
+      furniture: [couch],
+    });
+
+    expect(roomElement.querySelectorAll(':scope > div')).toHaveLength(0);
+    expect(
+      itemElement(canvas, 84).querySelectorAll(':scope > div'),
+    ).toHaveLength(4);
+  });
+
+  // The west handle's ns-resize cursor is today's behavior, pinned as-is.
+  test('resize handles sit on the east, west, north and south walls, in that order', () => {
+    const { roomElement } = renderEditor('select', 'room1');
+    const handles = Array.from(
+      roomElement.querySelectorAll(':scope > div'),
+    ) as HTMLElement[];
+
+    expect(handles[0]).toHaveStyle({ right: '-5px', cursor: 'ew-resize' });
+    expect(handles[1]).toHaveStyle({ left: '-5px', cursor: 'ns-resize' });
+    expect(handles[2]).toHaveStyle({ top: '-5px', cursor: 'ns-resize' });
+    expect(handles[3]).toHaveStyle({ bottom: '-5px', cursor: 'ns-resize' });
+  });
+});
+
+describe('LayoutEditor item mouse-down routing', () => {
+  test('mouse-down on furniture selects it and drags it without clearing the selection', () => {
+    const { canvas, props } = renderEditor('select', 'couch1', {
+      furniture: [couch],
+    });
+
+    fireEvent.mouseDown(itemElement(canvas, 84), {
+      button: 0,
+      clientX: 0,
+      clientY: 0,
+    });
+    expect(props.onRoomSelect).toHaveBeenCalledTimes(1);
+    expect(props.onRoomSelect).toHaveBeenCalledWith('couch1');
+
+    fireEvent.mouseMove(canvas, { clientX: 12, clientY: 6 });
+    expect(props.onRoomMove).toHaveBeenLastCalledWith('couch1', 36, 54, true);
+  });
+
+  test.each([
+    [0, { clientX: 24, clientY: 0 }, ['room1', 168, 120, true], null],
+    [
+      1,
+      { clientX: 24, clientY: 0 },
+      ['room1', 120, 120, true],
+      ['room1', 24, 0, true],
+    ],
+    [
+      2,
+      { clientX: 0, clientY: 24 },
+      ['room1', 144, 96, true],
+      ['room1', 0, 24, true],
+    ],
+    [3, { clientX: 0, clientY: 24 }, ['room1', 144, 144, true], null],
+  ] as const)(
+    'mouse-down on resize handle %i resizes from that wall',
+    (index, move, resizeCall, moveCall) => {
+      const { roomElement, canvas, props } = renderEditor('select', 'room1');
+      const handle = roomElement.querySelectorAll(':scope > div')[index];
+
+      fireEvent.mouseDown(handle, { button: 0, clientX: 0, clientY: 0 });
+      expect(props.onRoomSelect).toHaveBeenCalledTimes(1);
+      expect(props.onRoomSelect).toHaveBeenCalledWith('room1');
+
+      fireEvent.mouseMove(canvas, move);
+      expect(props.onRoomResize).toHaveBeenLastCalledWith(...resizeCall);
+      if (moveCall) {
+        expect(props.onRoomMove).toHaveBeenLastCalledWith(...moveCall);
+      } else {
+        expect(props.onRoomMove).not.toHaveBeenCalled();
+      }
+    },
+  );
 });
