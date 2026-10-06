@@ -264,7 +264,6 @@ describe('LayoutEditor item rendering', () => {
     ).toHaveLength(4);
   });
 
-  // The west handle's ns-resize cursor is today's behavior, pinned as-is.
   test('resize handles sit on the east, west, north and south walls, in that order', () => {
     const { roomElement } = renderEditor('select', 'room1');
     const handles = Array.from(
@@ -272,7 +271,7 @@ describe('LayoutEditor item rendering', () => {
     ) as HTMLElement[];
 
     expect(handles[0]).toHaveStyle({ right: '-5px', cursor: 'ew-resize' });
-    expect(handles[1]).toHaveStyle({ left: '-5px', cursor: 'ns-resize' });
+    expect(handles[1]).toHaveStyle({ left: '-5px', cursor: 'ew-resize' });
     expect(handles[2]).toHaveStyle({ top: '-5px', cursor: 'ns-resize' });
     expect(handles[3]).toHaveStyle({ bottom: '-5px', cursor: 'ns-resize' });
   });

@@ -55,34 +55,36 @@ const RoomElement = styled('div')<{
   }),
 );
 
-const ResizeHandle = styled('div')<{ position: string }>(({ position }) => ({
-  position: 'absolute',
-  width: '10px',
-  height: '10px',
-  backgroundColor: '#2196f3',
-  borderRadius: '50%',
-  cursor: position.includes('e') ? 'ew-resize' : 'ns-resize',
-  ...(position === 'e' && {
-    right: '-5px',
-    top: '50%',
-    transform: 'translateY(-50%)',
+const ResizeHandle = styled('div')<{ position: ResizeWall }>(
+  ({ position }) => ({
+    position: 'absolute',
+    width: '10px',
+    height: '10px',
+    backgroundColor: '#2196f3',
+    borderRadius: '50%',
+    cursor: position === 'e' || position === 'w' ? 'ew-resize' : 'ns-resize',
+    ...(position === 'e' && {
+      right: '-5px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+    }),
+    ...(position === 'w' && {
+      left: '-5px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+    }),
+    ...(position === 'n' && {
+      top: '-5px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+    }),
+    ...(position === 's' && {
+      bottom: '-5px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+    }),
   }),
-  ...(position === 'w' && {
-    left: '-5px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-  }),
-  ...(position === 'n' && {
-    top: '-5px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-  }),
-  ...(position === 's' && {
-    bottom: '-5px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-  }),
-}));
+);
 
 interface LayoutEditorItemProps {
   item: Pick<Room, 'id' | 'x' | 'y' | 'width' | 'height'>;
