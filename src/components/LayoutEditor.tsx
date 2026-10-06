@@ -2,11 +2,12 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { styled } from '@mui/material/styles';
-import { EditorMode, Point, Room, Wall, Furniture } from '@/lib/types';
+import { EditorMode, Point, Room, Furniture } from '@/lib/types';
 import { useRuler } from '@/lib/hooks/useRuler';
 import { useScaleDrag } from '@/lib/hooks/useScaleDrag';
 import { ScaledShape } from '@/lib/utils/scaleItem';
 import { RulerOverlay } from './ui/RulerOverlay';
+import { LayoutEditorItem, ResizeWall } from './LayoutEditorItem';
 
 /** position relative container */
 const EditorContainer = styled('div')(({ theme }) => ({
@@ -73,80 +74,6 @@ const BackgroundImage = styled('div')<{ scale: number; imageUrl: string }>(
   }),
 );
 
-const RoomElement = styled('div')<{
-  isLivable: boolean;
-  wallColor: string;
-  isSelected: boolean;
-  highlightColor: string;
-  isFurniture?: boolean;
-  furnitureColor?: string;
-}>(
-  ({
-    isLivable,
-    wallColor,
-    isSelected,
-    highlightColor,
-    isFurniture,
-    furnitureColor,
-  }) => ({
-    position: 'absolute',
-    border: `2px solid ${wallColor}`,
-    backgroundColor: isSelected
-      ? highlightColor
-      : isFurniture
-        ? furnitureColor || '#FFA500'
-        : isLivable
-          ? 'transparent'
-          : 'rgba(0, 0, 0, 0.5)',
-    backgroundImage:
-      !isLivable && !isSelected && !isFurniture
-        ? `repeating-linear-gradient(
-        45deg,
-        rgba(0, 0, 0, 0.5),
-        rgba(0, 0, 0, 0.5) 10px,
-        rgba(0, 0, 0, 0.3) 10px,
-        rgba(0, 0, 0, 0.3) 20px
-      )`
-        : 'none',
-    cursor: 'move',
-    opacity: isFurniture ? 1 : 0.5,
-
-    '&:hover': {
-      borderColor: wallColor,
-      opacity: isFurniture ? 1 : 0.6,
-    },
-  }),
-);
-
-const ResizeHandle = styled('div')<{ position: string }>(({ position }) => ({
-  position: 'absolute',
-  width: '10px',
-  height: '10px',
-  backgroundColor: '#2196f3',
-  borderRadius: '50%',
-  cursor: position.includes('e') ? 'ew-resize' : 'ns-resize',
-  ...(position === 'e' && {
-    right: '-5px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-  }),
-  ...(position === 'w' && {
-    left: '-5px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-  }),
-  ...(position === 'n' && {
-    top: '-5px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-  }),
-  ...(position === 's' && {
-    bottom: '-5px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-  }),
-}));
-
 const MODE_CURSORS: Record<EditorMode, string | undefined> = {
   select: undefined,
   scale: 'ns-resize',
@@ -205,7 +132,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
-  const [resizeWall, setResizeWall] = useState<string | null>(null);
+  const [resizeWall, setResizeWall] = useState<ResizeWall | null>(null);
   const [dragStart, setDragStart] = useState<Point | null>(null);
   const [viewportOffset, setViewportOffset] = useState<Point>({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -311,7 +238,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   );
 
   const handleResizeStart = useCallback(
-    (e: React.MouseEvent, roomId: string, wall: string) => {
+    (e: React.MouseEvent, roomId: string, wall: ResizeWall) => {
       e.stopPropagation();
       setIsResizing(true);
       setResizeWall(wall);
@@ -547,84 +474,34 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
         )}
         <Grid gridSize={gridSize} opacity={gridOpacity} />
         {rooms.map((room) => (
-          <RoomElement
+          <LayoutEditorItem
             key={room.id}
+            item={room}
             isLivable={room.livability === 'livable'}
-            wallColor={wallColor}
             isSelected={selectedRoomId === room.id}
+            showResizeHandles={showResizeHandles}
+            wallColor={wallColor}
             highlightColor={highlightColor}
-            style={{
-              left: `${room.x}em`,
-              top: `${room.y}em`,
-              width: `${room.width}em`,
-              height: `${room.height}em`,
-              borderColor: selectedRoomId === room.id ? '#2196f3' : wallColor,
-              cursor: modeCursor,
-            }}
-            onMouseDown={(e) => handleMouseDown(e, room.id)}
-          >
-            {showResizeHandles && selectedRoomId === room.id && (
-              <>
-                <ResizeHandle
-                  position="e"
-                  onMouseDown={(e) => handleResizeStart(e, room.id, 'e')}
-                />
-                <ResizeHandle
-                  position="w"
-                  onMouseDown={(e) => handleResizeStart(e, room.id, 'w')}
-                />
-                <ResizeHandle
-                  position="n"
-                  onMouseDown={(e) => handleResizeStart(e, room.id, 'n')}
-                />
-                <ResizeHandle
-                  position="s"
-                  onMouseDown={(e) => handleResizeStart(e, room.id, 's')}
-                />
-              </>
-            )}
-          </RoomElement>
+            cursor={modeCursor}
+            onMouseDown={handleMouseDown}
+            onResizeStart={handleResizeStart}
+          />
         ))}
         {furniture.map((item) => (
-          <RoomElement
+          <LayoutEditorItem
             key={item.id}
+            item={item}
             isLivable={false}
-            wallColor={wallColor}
-            isSelected={selectedRoomId === item.id}
-            highlightColor={highlightColor}
-            isFurniture={true}
+            isFurniture
             furnitureColor={item.color}
-            style={{
-              left: `${item.x}em`,
-              top: `${item.y}em`,
-              width: `${item.width}em`,
-              height: `${item.height}em`,
-              borderColor: selectedRoomId === item.id ? '#2196f3' : wallColor,
-              cursor: modeCursor,
-            }}
-            onMouseDown={(e) => handleMouseDown(e, item.id)}
-          >
-            {showResizeHandles && selectedRoomId === item.id && (
-              <>
-                <ResizeHandle
-                  position="e"
-                  onMouseDown={(e) => handleResizeStart(e, item.id, 'e')}
-                />
-                <ResizeHandle
-                  position="w"
-                  onMouseDown={(e) => handleResizeStart(e, item.id, 'w')}
-                />
-                <ResizeHandle
-                  position="n"
-                  onMouseDown={(e) => handleResizeStart(e, item.id, 'n')}
-                />
-                <ResizeHandle
-                  position="s"
-                  onMouseDown={(e) => handleResizeStart(e, item.id, 's')}
-                />
-              </>
-            )}
-          </RoomElement>
+            isSelected={selectedRoomId === item.id}
+            showResizeHandles={showResizeHandles}
+            wallColor={wallColor}
+            highlightColor={highlightColor}
+            cursor={modeCursor}
+            onMouseDown={handleMouseDown}
+            onResizeStart={handleResizeStart}
+          />
         ))}
       </EditorContent>
       <RulerOverlay
