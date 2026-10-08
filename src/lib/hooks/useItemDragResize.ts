@@ -201,6 +201,7 @@ export function useItemDragResize({
   return {
     isDragging,
     isPanning,
+    isResizing,
     viewportOffset,
     beginMove,
     beginPan,
