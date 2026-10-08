@@ -58,6 +58,8 @@ export interface FurnitureInstance {
 /** Canvas interaction mode chosen from the Hotkeys toolbar or a held hotkey. */
 export type EditorMode = 'select' | 'scale' | 'ruler';
 
+export type ResizeWall = 'e' | 'w' | 'n' | 's';
+
 export interface AppState {
   floorPlan: FloorPlan;
   furnitureInventory: FurnitureInventory;

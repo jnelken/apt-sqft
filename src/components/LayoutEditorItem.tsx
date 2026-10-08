@@ -2,9 +2,7 @@
 
 import React from 'react';
 import { styled } from '@mui/material/styles';
-import { Room } from '@/lib/types';
-
-export type ResizeWall = 'e' | 'w' | 'n' | 's';
+import { ResizeWall, Room } from '@/lib/types';
 
 const RESIZE_WALLS: ResizeWall[] = ['e', 'w', 'n', 's'];
 
