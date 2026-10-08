@@ -400,7 +400,7 @@ describe('LayoutEditor release snapping', () => {
     },
   );
 
-  test('a resize is not ended by a window mouseup outside the canvas', () => {
+  test('a window mouseup outside the canvas ends a resize and commits the snapped size', () => {
     const { canvas, props } = renderEditor('select', 'room1', {
       rooms: [{ ...room, width: 150 }],
     });
@@ -409,7 +409,28 @@ describe('LayoutEditor release snapping', () => {
     fireEvent.mouseDown(handle, { button: 0, clientX: 0, clientY: 0 });
     fireEvent.mouseUp(window);
 
-    expect(props.onRoomResize).not.toHaveBeenCalled();
+    expect(props.onRoomResize).toHaveBeenCalledTimes(1);
+    expect(props.onRoomResize).toHaveBeenLastCalledWith(
+      'room1',
+      156,
+      120,
+      false,
+    );
+  });
+
+  test('a resize keeps previewing while the pointer is off the canvas', () => {
+    const { canvas, props } = renderEditor('select', 'room1');
+    const handle = itemElement(canvas, 144).querySelectorAll(':scope > div')[0];
+
+    fireEvent.mouseDown(handle, { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.mouseMove(window, { clientX: 30, clientY: 0 });
+
+    expect(props.onRoomResize).toHaveBeenLastCalledWith(
+      'room1',
+      174,
+      120,
+      true,
+    );
   });
 });
 
@@ -438,14 +459,14 @@ describe('LayoutEditor panning', () => {
     expect(props.onRoomMove).not.toHaveBeenCalled();
   });
 
-  test('a canvas mousemove also reaches the window listener, so the pan counts it twice', () => {
+  test('a canvas mousemove pans exactly the pointer delta', () => {
     const { canvas } = renderEditor('select');
 
     fireEvent.mouseDown(canvas, { button: 2, clientX: 0, clientY: 0 });
     fireEvent.mouseMove(canvas, { clientX: 10, clientY: 20 });
 
     expect(content(canvas).style.transform).toBe(
-      'translate(calc(-50% + 20px), calc(-50% + 40px)) scale(1)',
+      'translate(calc(-50% + 10px), calc(-50% + 20px)) scale(1)',
     );
   });
 

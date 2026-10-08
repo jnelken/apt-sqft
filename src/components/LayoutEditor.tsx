@@ -96,6 +96,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   const {
     isDragging,
     isPanning,
+    isResizing,
     viewportOffset,
     beginMove,
     beginPan,
@@ -181,7 +182,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   );
 
   const handleMouseMove = useCallback(
-    (e: MouseEvent | React.MouseEvent) => {
+    (e: MouseEvent) => {
       if (isRuling) {
         updateRuler(e);
         return;
@@ -212,8 +213,10 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
     e.preventDefault();
   }, []);
 
+  // The window is the only move/up listener, so a gesture keeps tracking off
+  // the canvas and a canvas event is never handled twice.
   useEffect(() => {
-    if (isDragging || isPanning || isRuling || isScaling) {
+    if (isDragging || isPanning || isResizing || isRuling || isScaling) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     }
@@ -224,6 +227,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
   }, [
     isDragging,
     isPanning,
+    isResizing,
     isRuling,
     isScaling,
     handleMouseMove,
@@ -246,8 +250,6 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({
       className="LayoutEditor"
       ref={containerRef}
       onMouseDown={handleContainerMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
       onContextMenu={handleContextMenu}
       style={{ cursor: isRuling ? 'crosshair' : modeCursor }}
     >
