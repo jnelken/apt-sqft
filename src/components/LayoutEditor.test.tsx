@@ -330,3 +330,139 @@ describe('LayoutEditor item mouse-down routing', () => {
     },
   );
 });
+
+describe('LayoutEditor release snapping', () => {
+  test('releasing a moved room snaps its position to the grid', () => {
+    const { canvas, props } = renderEditor('select', 'room1', {
+      rooms: [{ ...room, x: 5, y: 19 }],
+    });
+
+    fireEvent.mouseDown(itemElement(canvas, 144), {
+      button: 0,
+      clientX: 0,
+      clientY: 0,
+    });
+    fireEvent.mouseUp(canvas);
+
+    expect(props.onRoomMove).toHaveBeenLastCalledWith('room1', 0, 24, false);
+    expect(props.onRoomResize).not.toHaveBeenCalled();
+  });
+
+  test('a move drag also ends on a window mouseup', () => {
+    const { canvas, props } = renderEditor('select', 'room1', {
+      rooms: [{ ...room, x: 5, y: 19 }],
+    });
+
+    fireEvent.mouseDown(itemElement(canvas, 144), {
+      button: 0,
+      clientX: 0,
+      clientY: 0,
+    });
+    fireEvent.mouseUp(window);
+
+    expect(props.onRoomMove).toHaveBeenLastCalledWith('room1', 0, 24, false);
+  });
+
+  test.each([
+    [0, { width: 150, height: 120 }, ['room1', 156, 120, false], null],
+    [
+      1,
+      { width: 150, height: 120 },
+      ['room1', 156, 120, false],
+      ['room1', -6, 0, false],
+    ],
+    [
+      2,
+      { width: 144, height: 125 },
+      ['room1', 144, 120, false],
+      ['room1', 0, 5, false],
+    ],
+    [3, { width: 144, height: 125 }, ['room1', 144, 120, false], null],
+  ] as const)(
+    'releasing resize handle %i snaps the size, shifting x/y for west and north',
+    (index, size, resizeCall, moveCall) => {
+      const { canvas, props } = renderEditor('select', 'room1', {
+        rooms: [{ ...room, ...size }],
+      });
+      const handle = itemElement(canvas, size.width).querySelectorAll(
+        ':scope > div',
+      )[index];
+
+      fireEvent.mouseDown(handle, { button: 0, clientX: 0, clientY: 0 });
+      fireEvent.mouseUp(canvas);
+
+      expect(props.onRoomResize).toHaveBeenLastCalledWith(...resizeCall);
+      if (moveCall) {
+        expect(props.onRoomMove).toHaveBeenLastCalledWith(...moveCall);
+      } else {
+        expect(props.onRoomMove).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  test('a resize is not ended by a window mouseup outside the canvas', () => {
+    const { canvas, props } = renderEditor('select', 'room1', {
+      rooms: [{ ...room, width: 150 }],
+    });
+    const handle = itemElement(canvas, 150).querySelectorAll(':scope > div')[0];
+
+    fireEvent.mouseDown(handle, { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.mouseUp(window);
+
+    expect(props.onRoomResize).not.toHaveBeenCalled();
+  });
+});
+
+describe('LayoutEditor panning', () => {
+  const content = (canvas: HTMLElement) => canvas.firstChild as HTMLElement;
+
+  test.each([
+    ['shift+left drag', { button: 0, shiftKey: true }],
+    ['right drag', { button: 2 }],
+  ])('%s pans the viewport until release', (_label, button) => {
+    const { canvas, props } = renderEditor('select');
+
+    fireEvent.mouseDown(canvas, { ...button, clientX: 0, clientY: 0 });
+    fireEvent.mouseMove(window, { clientX: 10, clientY: 20 });
+    fireEvent.mouseMove(window, { clientX: 30, clientY: 40 });
+    expect(content(canvas).style.transform).toBe(
+      'translate(calc(-50% + 30px), calc(-50% + 40px)) scale(1)',
+    );
+
+    fireEvent.mouseUp(window);
+    fireEvent.mouseMove(window, { clientX: 90, clientY: 90 });
+    expect(content(canvas).style.transform).toBe(
+      'translate(calc(-50% + 30px), calc(-50% + 40px)) scale(1)',
+    );
+    expect(props.onRoomSelect).not.toHaveBeenCalled();
+    expect(props.onRoomMove).not.toHaveBeenCalled();
+  });
+
+  test('a canvas mousemove also reaches the window listener, so the pan counts it twice', () => {
+    const { canvas } = renderEditor('select');
+
+    fireEvent.mouseDown(canvas, { button: 2, clientX: 0, clientY: 0 });
+    fireEvent.mouseMove(canvas, { clientX: 10, clientY: 20 });
+
+    expect(content(canvas).style.transform).toBe(
+      'translate(calc(-50% + 20px), calc(-50% + 40px)) scale(1)',
+    );
+  });
+
+  test('a shift+mouse-down on a room starts a pan instead of a move', () => {
+    const { roomElement, canvas, props } = renderEditor('select');
+
+    fireEvent.mouseDown(roomElement, {
+      button: 0,
+      shiftKey: true,
+      clientX: 0,
+      clientY: 0,
+    });
+    fireEvent.mouseMove(window, { clientX: 12, clientY: 0 });
+
+    expect(props.onRoomMove).not.toHaveBeenCalled();
+    expect(content(canvas).style.transform).toBe(
+      'translate(calc(-50% + 12px), calc(-50% + 0px)) scale(1)',
+    );
+  });
+});
