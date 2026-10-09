@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import React from 'react';
+import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
 import { FloorPlanTabs } from '@/components/FloorPlanTabs';
@@ -13,149 +13,17 @@ import { RightSidebar } from '@/components/RightSidebar';
 import { RoomList } from '@/components/RoomList';
 import { FurnitureList } from '@/components/FurnitureList';
 import Divider from '@mui/material/Divider';
-import { FurnitureInventory, FurnitureInstance, Furniture } from '@/lib/types';
-
-// Import custom hooks
-import {
-  useLocalStoragePersistence,
-  initializeStateFromStorage,
-} from '@/lib/hooks/useLocalStoragePersistence';
-import { useHistoryManager } from '@/lib/hooks/useHistoryManager';
-import { useFloorPlanManager } from '@/lib/hooks/useFloorPlanManager';
-import { useRoomManager } from '@/lib/hooks/useRoomManager';
-import { useFurnitureManager } from '@/lib/hooks/useFurnitureManager';
-import { useItemSelection } from '@/lib/hooks/useItemSelection';
-import { useKeyboardShortcuts } from '@/lib/hooks/useKeyboardShortcuts';
-import { useAppSettings } from '@/lib/hooks/useAppSettings';
-import { useEditorMode } from '@/lib/hooks/useEditorMode';
-
-// Helper function to get furniture objects from instances
-const getFurnitureFromInstances = (
-  instances: FurnitureInstance[],
-  inventory: FurnitureInventory,
-): Furniture[] => {
-  return instances
-    .map((instance) => {
-      const furniture = inventory[instance.furnitureId];
-      if (!furniture) return null;
-      return {
-        ...furniture,
-        x: instance.x,
-        y: instance.y,
-      };
-    })
-    .filter((furniture): furniture is Furniture => furniture !== null);
-};
+import { useAppController } from '@/lib/hooks/useAppController';
+import { useAppTheme } from '@/lib/hooks/useAppTheme';
+import { getFurnitureFromInstances } from '@/lib/utils/getFurnitureFromInstances';
 
 function App() {
-  // Initialize state from localStorage/sessionStorage
-  const {
-    floorPlans: initialFloorPlans,
-    currentFloorPlanName: initialCurrentName,
-    appState: initialAppState,
-  } = initializeStateFromStorage();
-
-  const [floorPlans, setFloorPlans] = useState(initialFloorPlans);
-  const [currentFloorPlanName, setCurrentFloorPlanName] =
-    useState(initialCurrentName);
-  const [appState, setAppState] = useState(initialAppState);
-  const [sidebarTab, setSidebarTab] = useState(0);
-  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
-
-  // Use custom hooks
-  useLocalStoragePersistence({ appState, floorPlans, currentFloorPlanName });
-
-  const { pushToHistory, handleUndo, handleRedo, canUndo, canRedo } =
-    useHistoryManager({
-      appState,
-      setAppState,
-    });
-
-  const {
-    handleFloorPlanSelect,
-    handleNameChange,
-    handleDelete,
-    handleNewFloorPlan,
-    handleImageUpload,
-    handleImageScaleChange,
-  } = useFloorPlanManager({
-    floorPlans,
-    setFloorPlans,
-    currentFloorPlanName,
-    setCurrentFloorPlanName,
-    appState,
-    setAppState,
-    pushToHistory,
-  });
-
-  // Only keep delete functions for keyboard shortcuts
-  const { handleDeleteRoom } = useRoomManager({
-    appState,
-    setAppState,
-    pushToHistory,
-    setSidebarTab,
-  });
-
-  const { handleDeleteFurniture } = useFurnitureManager({
-    appState,
-    setAppState,
-    pushToHistory,
-    setSidebarTab,
-  });
-
-  const {
-    selectedRoom,
-    selectedFurniture,
-    handleRoomSelect,
-    handleRoomMove,
-    handleRoomResize,
-    handleRoomScale,
-    handleSwapDimensions,
-    handleDeleteSelected,
-    handleTabChange,
-  } = useItemSelection({
-    appState,
-    setAppState,
-    setSidebarTab,
-    pushToHistory,
-    handleDeleteRoom,
-    handleDeleteFurniture,
-  });
-
-  const {
-    handleGridSizeChange,
-    handleGridOpacityChange,
-    handleZoomChange,
-    handleThemeChange,
-    handleWallColorChange,
-    handleHighlightColorChange,
-  } = useAppSettings({
-    appState,
-    setAppState,
-  });
-
-  useKeyboardShortcuts({
-    handleUndo,
-    handleRedo,
-    handleDeleteSelected,
-  });
-
-  const { editorMode, setEditorMode } = useEditorMode();
-
-  const theme = useMemo(
-    () =>
-      createTheme({
-        typography: {
-          fontFamily: 'Geist, sans-serif',
-        },
-        palette: {
-          mode: appState.theme,
-          primary: {
-            main: '#2F4F4F',
-          },
-        },
-      }),
-    [appState.theme],
+  const app = useAppController();
+  const { appState } = app;
+  const theme = useAppTheme(appState.theme);
+  const furniture = getFurnitureFromInstances(
+    appState.floorPlan.furnitureInstances || [],
+    appState.furnitureInventory,
   );
 
   return (
@@ -166,72 +34,66 @@ function App() {
         className={process.env.NODE_ENV === 'development' ? 'DEBUG_MODE' : ''}
       >
         <FloorPlanTabs
-          floorPlans={floorPlans}
-          currentFloorPlanName={currentFloorPlanName}
-          onFloorPlanSelect={handleFloorPlanSelect}
-          onNewFloorPlan={handleNewFloorPlan}
+          floorPlans={app.floorPlans}
+          currentFloorPlanName={app.currentFloorPlanName}
+          onFloorPlanSelect={app.handleFloorPlanSelect}
+          onNewFloorPlan={app.handleNewFloorPlan}
         />
         <MainToolbar
           floorPlanName={appState.floorPlan.name}
-          onNameChange={handleNameChange}
-          onDelete={handleDelete}
+          onNameChange={app.handleNameChange}
+          onDelete={app.handleDelete}
           gridSize={appState.gridSize}
-          onGridSizeChange={handleGridSizeChange}
+          onGridSizeChange={app.handleGridSizeChange}
           wallColor={appState.wallColor}
-          onWallColorChange={handleWallColorChange}
+          onWallColorChange={app.handleWallColorChange}
           selectedRoomId={appState.selectedRoomId}
           highlightColor={appState.highlightColor}
-          onHighlightColorChange={handleHighlightColorChange}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          canUndo={canUndo}
-          canRedo={canRedo}
+          onHighlightColorChange={app.handleHighlightColorChange}
+          onUndo={app.handleUndo}
+          onRedo={app.handleRedo}
+          canUndo={app.canUndo}
+          canRedo={app.canRedo}
           zoom={appState.zoom}
-          onZoomChange={handleZoomChange}
-          onImageUpload={handleImageUpload}
+          onZoomChange={app.handleZoomChange}
+          onImageUpload={app.handleImageUpload}
           imageScale={appState.floorPlan.imageScale}
-          onImageScaleChange={handleImageScaleChange}
+          onImageScaleChange={app.handleImageScaleChange}
           gridOpacity={appState.gridOpacity}
-          onGridOpacityChange={handleGridOpacityChange}
+          onGridOpacityChange={app.handleGridOpacityChange}
           theme={appState.theme}
-          onThemeChange={handleThemeChange}
+          onThemeChange={app.handleThemeChange}
         />
         <HotkeysToolbar
-          editorMode={editorMode}
-          onEditorModeChange={setEditorMode}
+          editorMode={app.editorMode}
+          onEditorModeChange={app.setEditorMode}
         />
         <Box sx={{ flexGrow: 1, display: 'flex' }}>
           <LeftPanel
-            isOpen={isLeftPanelOpen}
-            onToggle={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
+            isOpen={app.isLeftPanelOpen}
+            onToggle={app.toggleLeftPanel}
           >
             <RoomList
               rooms={appState.floorPlan.rooms}
               selectedRoomId={appState.selectedRoomId}
-              onRoomSelect={handleRoomSelect}
+              onRoomSelect={app.handleRoomSelect}
             />
             <Divider />
             <FurnitureList
-              furniture={getFurnitureFromInstances(
-                appState.floorPlan.furnitureInstances || [],
-                appState.furnitureInventory,
-              )}
+              furniture={furniture}
               selectedRoomId={appState.selectedRoomId}
-              onRoomSelect={handleRoomSelect}
+              onRoomSelect={app.handleRoomSelect}
             />
           </LeftPanel>
           <MainContent
             rooms={appState.floorPlan.rooms}
-            furniture={getFurnitureFromInstances(
-              appState.floorPlan.furnitureInstances || [],
-              appState.furnitureInventory,
-            )}
+            furniture={furniture}
             selectedRoomId={appState.selectedRoomId}
-            onRoomSelect={handleRoomSelect}
-            onRoomMove={handleRoomMove}
-            onRoomResize={handleRoomResize}
-            onRoomScale={handleRoomScale}
-            editorMode={editorMode}
+            onRoomSelect={app.handleRoomSelect}
+            onRoomMove={app.handleRoomMove}
+            onRoomResize={app.handleRoomResize}
+            onRoomScale={app.handleRoomScale}
+            editorMode={app.editorMode}
             gridSize={appState.gridSize}
             zoom={appState.zoom}
             backgroundImage={appState.floorPlan.backgroundImage}
@@ -241,26 +103,21 @@ function App() {
             highlightColor={appState.highlightColor}
           />
           <RightSidebar
-            sidebarTab={sidebarTab}
-            onTabChange={handleTabChange}
-            selectedRoom={selectedRoom}
-            selectedFurniture={selectedFurniture}
+            sidebarTab={app.sidebarTab}
+            onTabChange={app.handleTabChange}
+            selectedRoom={app.selectedRoom}
+            selectedFurniture={app.selectedFurniture}
             selectedTool={appState.selectedTool}
-            onToolChange={(tool) =>
-              setAppState((prev) => ({ ...prev, selectedTool: tool }))
-            }
+            onToolChange={app.handleToolChange}
             rooms={appState.floorPlan.rooms}
-            furniture={getFurnitureFromInstances(
-              appState.floorPlan.furnitureInstances || [],
-              appState.furnitureInventory,
-            )}
+            furniture={furniture}
             selectedRoomId={appState.selectedRoomId}
-            onRoomSelect={handleRoomSelect}
-            onSwapDimensions={handleSwapDimensions}
+            onRoomSelect={app.handleRoomSelect}
+            onSwapDimensions={app.handleSwapDimensions}
             floorPlan={appState.floorPlan}
             appState={appState}
-            setAppState={setAppState}
-            setSidebarTab={setSidebarTab}
+            setAppState={app.setAppState}
+            setSidebarTab={app.setSidebarTab}
           />
         </Box>
       </Box>

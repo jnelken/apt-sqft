@@ -29,16 +29,16 @@ Git hooks (`.githooks/`): pre-commit runs lint-staged + lint + typecheck; pre-pu
 - `app/page.tsx` is the only real page. It `dynamic()`-imports `src/App.tsx` with `ssr: false`. The entire application is therefore a client-rendered SPA — there is no server-side rendering, no API routes, and no data fetching. Treat `src/App.tsx` as the true app root.
 - `src/index.tsx` and `src/reportWebVitals.ts` are leftover Create React App scaffolding and are **not** used by the Next.js entry. Don't wire new code through them.
 
-**State lives in `App.tsx`, behavior lives in hooks.** `src/App.tsx` owns the top-level `useState` (`floorPlans`, `currentFloorPlanName`, `appState`) and composes the manager hooks in `src/lib/hooks/`. Each hook encapsulates one slice of behavior:
+**State lives in `useAppController`, behavior lives in hooks, `App.tsx` is layout.** `src/lib/hooks/useAppController.ts` owns the top-level `useState` (`floorPlans`, `currentFloorPlanName`, `appState`, plus sidebar/panel UI state) and composes the manager hooks in `src/lib/hooks/`; `src/App.tsx` calls it and renders the layout. Each hook encapsulates one slice of behavior:
 
 - `useLocalStoragePersistence` — load/save the whole app blob; `initializeStateFromStorage()` seeds initial state
 - `useHistoryManager` — undo/redo, stored in sessionStorage
 - `useFloorPlanManager`, `useRoomManager`, `useFurnitureManager` — CRUD on the respective entities
 - `useItemSelection`, `useKeyboardShortcuts`, `useAppSettings` — selection, hotkeys, and settings (theme, grid, colors)
 
-When adding editor behavior, prefer adding/extending a hook over growing `App.tsx`.
+When adding editor behavior, prefer adding/extending a hook over growing `App.tsx` or `useAppController`.
 
-**Data model** (`src/lib/types/index.ts`): A `FloorPlan` has `rooms`, `furnitureInstances`, a background image, and `imageScale`. Furniture uses an **inventory + instances** split: `FurnitureInventory` maps an id → a `Furniture` definition, and each `FurnitureInstance` references that id plus its own `x/y/rotation`. `App.tsx` joins instances against the inventory to produce concrete `Furniture[]` for rendering. (This supersedes the older "furniture extends room" model in `PROJECT_SPEC.md`.) Both `Room` and `Furniture` are point-based: a room is a set of `Point`s, and walls are derived by a shortest-path rule rather than stored explicitly.
+**Data model** (`src/lib/types/index.ts`): A `FloorPlan` has `rooms`, `furnitureInstances`, a background image, and `imageScale`. Furniture uses an **inventory + instances** split: `FurnitureInventory` maps an id → a `Furniture` definition, and each `FurnitureInstance` references that id plus its own `x/y/rotation`. `App.tsx` joins instances against the inventory (once per render, via `getFurnitureFromInstances` in `src/lib/utils/`) to produce concrete `Furniture[]` for rendering. (This supersedes the older "furniture extends room" model in `PROJECT_SPEC.md`.) Both `Room` and `Furniture` are point-based: a room is a set of `Point`s, and walls are derived by a shortest-path rule rather than stored explicitly.
 
 **Rendering & units:** `LayoutEditor.tsx` is the canvas. Geometry uses the convention that **1rem/1em ≈ 1 inch**, which makes relative room sizing and furniture scaling straightforward in CSS. Points snap to the grid only when edited, not when the grid size changes.
 

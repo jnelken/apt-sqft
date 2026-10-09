@@ -1,12 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import {
-  AppState,
-  Room,
-  Furniture,
-  FurnitureInventory,
-  FurnitureInstance,
-  FloorPlan,
-} from '@/lib/types';
+import { AppState, Room, Furniture, FloorPlan } from '@/lib/types';
 import { ScaledShape } from '@/lib/utils/scaleItem';
 
 interface UseItemSelectionProps {
@@ -17,24 +10,6 @@ interface UseItemSelectionProps {
   handleDeleteRoom: () => void;
   handleDeleteFurniture: () => void;
 }
-
-// Helper function to get furniture objects from instances
-const getFurnitureFromInstances = (
-  instances: FurnitureInstance[],
-  inventory: FurnitureInventory,
-): Furniture[] => {
-  return instances
-    .map((instance) => {
-      const furniture = inventory[instance.furnitureId];
-      if (!furniture) return null;
-      return {
-        ...furniture,
-        x: instance.x,
-        y: instance.y,
-      };
-    })
-    .filter((furniture): furniture is Furniture => furniture !== null);
-};
 
 /**
  * A plain rectangle's area is its bounding box. A room with custom points isn't
