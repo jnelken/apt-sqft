@@ -25,6 +25,12 @@ export const scaledSqFootage = (
   return room.sqFootage * ((width * height) / boxArea);
 };
 
+const hasRoom = (floorPlan: FloorPlan, id: string): boolean =>
+  floorPlan.rooms.some((room) => room.id === id);
+
+const hasFurniture = (floorPlan: FloorPlan, id: string): boolean =>
+  floorPlan.furnitureInstances.some((instance) => instance.furnitureId === id);
+
 interface UseItemSelectionReturn {
   selectedRoom: Room | undefined;
   selectedFurniture: Furniture | undefined;
@@ -96,19 +102,23 @@ export const useItemSelection = ({
     [setAppState, setSidebarTab],
   );
 
+  // A drag previews every frame without history; only its release is undoable.
+  const commitFloorPlan = useCallback(
+    (newFloorPlan: FloorPlan, isPreview: boolean) => {
+      if (isPreview) {
+        setAppState((prev) => ({ ...prev, floorPlan: newFloorPlan }));
+      } else {
+        pushToHistory(newFloorPlan);
+      }
+    },
+    [pushToHistory, setAppState],
+  );
+
   const handleRoomMove = useCallback(
     (roomId: string, x: number, y: number, isDragging: boolean = false) => {
-      // Check if the item is a room or furniture
-      const isRoom = appState.floorPlan.rooms.some(
-        (room) => room.id === roomId,
-      );
-      const isFurniture = appState.floorPlan.furnitureInstances.some(
-        (instance) => instance.furnitureId === roomId,
-      );
-
       const newFloorPlan = { ...appState.floorPlan };
 
-      if (isRoom) {
+      if (hasRoom(newFloorPlan, roomId)) {
         newFloorPlan.rooms = newFloorPlan.rooms.map((room) =>
           room.id === roomId
             ? {
@@ -118,7 +128,7 @@ export const useItemSelection = ({
               }
             : room,
         );
-      } else if (isFurniture) {
+      } else if (hasFurniture(newFloorPlan, roomId)) {
         newFloorPlan.furnitureInstances = newFloorPlan.furnitureInstances.map(
           (instance) =>
             instance.furnitureId === roomId
@@ -131,18 +141,9 @@ export const useItemSelection = ({
         );
       }
 
-      // Only push to history if we're not dragging (i.e., this is the final position)
-      if (!isDragging) {
-        pushToHistory(newFloorPlan);
-      } else {
-        // Just update the current state without adding to history
-        setAppState((prev) => ({
-          ...prev,
-          floorPlan: newFloorPlan,
-        }));
-      }
+      commitFloorPlan(newFloorPlan, isDragging);
     },
-    [appState.floorPlan, pushToHistory, setAppState],
+    [appState.floorPlan, commitFloorPlan],
   );
 
   const handleRoomResize = useCallback(
@@ -153,12 +154,8 @@ export const useItemSelection = ({
       isResizing: boolean = false,
     ) => {
       const newFloorPlan = { ...appState.floorPlan };
-      const isRoom = newFloorPlan.rooms.some((room) => room.id === roomId);
-      const isFurniture = newFloorPlan.furnitureInstances.some(
-        (instance) => instance.furnitureId === roomId,
-      );
 
-      if (isRoom) {
+      if (hasRoom(newFloorPlan, roomId)) {
         newFloorPlan.rooms = newFloorPlan.rooms.map((room) =>
           room.id === roomId
             ? {
@@ -168,7 +165,7 @@ export const useItemSelection = ({
               }
             : room,
         );
-      } else if (isFurniture) {
+      } else if (hasFurniture(newFloorPlan, roomId)) {
         // Update furniture in inventory
         const updatedInventory = {
           ...appState.furnitureInventory,
@@ -185,22 +182,13 @@ export const useItemSelection = ({
         }));
       }
 
-      // Only push to history if we're not resizing (i.e., this is the final size)
-      if (!isResizing) {
-        pushToHistory(newFloorPlan);
-      } else {
-        // Just update the current state without adding to history
-        setAppState((prev) => ({
-          ...prev,
-          floorPlan: newFloorPlan,
-        }));
-      }
+      commitFloorPlan(newFloorPlan, isResizing);
     },
     [
       appState.floorPlan,
       appState.furnitureInventory,
       setAppState,
-      pushToHistory,
+      commitFloorPlan,
     ],
   );
 
@@ -210,10 +198,7 @@ export const useItemSelection = ({
       { width, height, points }: ScaledShape,
       isScaling: boolean = false,
     ) => {
-      const isRoom = appState.floorPlan.rooms.some(
-        (room) => room.id === roomId,
-      );
-      if (!isRoom) {
+      if (!hasRoom(appState.floorPlan, roomId)) {
         // FIXME(advance-roadmap review): furniture dimensions live in furnitureInventory, which undo/redo history doesn't snapshot, so a furniture scale (like a furniture resize) can't be undone — codex, 2026-09-29
         handleRoomResize(roomId, width, height, isScaling);
         return;
@@ -234,13 +219,9 @@ export const useItemSelection = ({
         ),
       };
 
-      if (!isScaling) {
-        pushToHistory(newFloorPlan);
-      } else {
-        setAppState((prev) => ({ ...prev, floorPlan: newFloorPlan }));
-      }
+      commitFloorPlan(newFloorPlan, isScaling);
     },
-    [appState.floorPlan, handleRoomResize, pushToHistory, setAppState],
+    [appState.floorPlan, handleRoomResize, commitFloorPlan],
   );
 
   const handleSwapDimensions = useCallback(() => {
@@ -301,12 +282,7 @@ export const useItemSelection = ({
   const handleDeleteSelected = useCallback(() => {
     if (!appState.selectedRoomId) return;
 
-    // Check if the selected item is a room
-    const isRoom = appState.floorPlan.rooms.some(
-      (room) => room.id === appState.selectedRoomId,
-    );
-
-    if (isRoom) {
+    if (hasRoom(appState.floorPlan, appState.selectedRoomId)) {
       handleDeleteRoom();
     } else {
       // It must be furniture
@@ -314,7 +290,7 @@ export const useItemSelection = ({
     }
   }, [
     appState.selectedRoomId,
-    appState.floorPlan.rooms,
+    appState.floorPlan,
     handleDeleteRoom,
     handleDeleteFurniture,
   ]);

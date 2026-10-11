@@ -355,6 +355,73 @@ describe('useItemSelection', () => {
     expect(props.pushToHistory).toHaveBeenCalled();
   });
 
+  describe('a preview followed by a commit adds one history entry', () => {
+    type Handlers = ReturnType<typeof useItemSelection>;
+    const gestures: [string, (h: Handlers, preview: boolean) => void][] = [
+      [
+        'move a room',
+        (h, preview) => h.handleRoomMove('room1', 200, 300, preview),
+      ],
+      [
+        'move furniture',
+        (h, preview) => h.handleRoomMove('furniture1', 200, 300, preview),
+      ],
+      [
+        'resize a room',
+        (h, preview) => h.handleRoomResize('room1', 200, 150, preview),
+      ],
+      [
+        'scale a room',
+        (h, preview) =>
+          h.handleRoomScale(
+            'room1',
+            { width: 288, height: 240, points: [] },
+            preview,
+          ),
+      ],
+    ];
+
+    test.each(gestures)('%s', (_name, gesture) => {
+      const appState = createMockAppState(
+        [createMockRoom('room1', 'Living Room', 100, 100)],
+        [createMockFurnitureInstance('furniture1', 100, 100)],
+        { furniture1: createMockFurniture('furniture1', 'Sofa') },
+      );
+      const props = { ...defaultProps, appState };
+      const { result } = renderHook(() => useItemSelection(props));
+
+      act(() => gesture(result.current, true));
+      act(() => gesture(result.current, true));
+      expect(props.pushToHistory).not.toHaveBeenCalled();
+      const previewed = props.setAppState.mock.calls[1][0](props.appState);
+
+      act(() => gesture(result.current, false));
+      expect(props.pushToHistory).toHaveBeenCalledTimes(1);
+      expect(props.setAppState).toHaveBeenCalledTimes(2);
+      expect(props.pushToHistory.mock.calls[0][0]).toEqual(previewed.floorPlan);
+    });
+
+    test('resize furniture', () => {
+      const appState = createMockAppState(
+        [],
+        [createMockFurnitureInstance('furniture1')],
+        { furniture1: createMockFurniture('furniture1', 'Sofa') },
+      );
+      const props = { ...defaultProps, appState };
+      const { result } = renderHook(() => useItemSelection(props));
+
+      act(() => result.current.handleRoomResize('furniture1', 100, 70, true));
+      expect(props.pushToHistory).not.toHaveBeenCalled();
+      // Inventory update, then the floor plan preview
+      expect(props.setAppState).toHaveBeenCalledTimes(2);
+
+      act(() => result.current.handleRoomResize('furniture1', 100, 70, false));
+      expect(props.pushToHistory).toHaveBeenCalledTimes(1);
+      expect(props.pushToHistory).toHaveBeenCalledWith(appState.floorPlan);
+      expect(props.setAppState).toHaveBeenCalledTimes(3);
+    });
+  });
+
   test('handleSwapDimensions swaps room dimensions', () => {
     const room = createMockRoom('room1', 'Living Room');
     room.width = 144;
